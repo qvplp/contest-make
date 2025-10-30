@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -369,7 +369,8 @@ export default function ContestPostsPage() {
   }, [displayedPosts, hasMore]);
 
   return (
-    <div className="bg-gray-950 min-h-screen">
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-300">読み込み中...</div>}>
+      <div className="bg-gray-950 min-h-screen">
       <div className="bg-gray-900 border-b border-gray-800">
         <div className="container mx-auto px-6 py-8">
           <div className="flex items-center justify-between mb-6">
@@ -495,7 +496,7 @@ export default function ContestPostsPage() {
           <div className="text-center py-8 text-gray-400">すべての作品を読み込みました</div>
         )}
       </div>
-    </div>
+    </Suspense>
   );
 }
 
