@@ -63,6 +63,16 @@ export default function HalloweenContestPage() {
     { date: '11月1日', event: '結果発表', status: 'upcoming' },
   ];
 
+  // 応募中の作品（モック）
+  const currentSubmissions = [
+    { id: 1, imageUrl: '/images/samples/sample1.jpg', title: 'おばけハロウィン' },
+    { id: 2, imageUrl: '/images/samples/sample2.jpg', title: '魔女の宅配便' },
+    { id: 3, imageUrl: '/images/samples/sample3.jpg', title: 'パンプキンナイト' },
+    { id: 4, imageUrl: '/images/samples/sample5.jpg', title: '満月の海賊船' },
+    { id: 5, imageUrl: '/images/samples/sample7.jpg', title: 'スチームパンクハロウィン' },
+    { id: 6, imageUrl: '/images/samples/sample8.jpg', title: 'ダンスパーティー' },
+  ];
+
   return (
     <div className="bg-gray-950 min-h-screen">
       {/* ヒーローセクション */}
@@ -242,24 +252,24 @@ export default function HalloweenContestPage() {
         </div>
       </section>
 
-      {/* 過去の受賞作品（サンプル） */}
+      {/* 応募中の作品グリッド */}
       <section className="container mx-auto px-6 py-16 bg-gradient-to-b from-transparent to-gray-900/50">
-        <h2 className="text-4xl font-bold text-center mb-12">過去の受賞作品</h2>
-        
+        <h2 className="text-4xl font-bold text-center mb-12">応募中の作品</h2>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          {currentSubmissions.map((item) => (
             <div
-              key={i}
+              key={item.id}
               className="aspect-square rounded-lg overflow-hidden bg-gray-800 hover:scale-105 transition cursor-pointer relative group"
             >
               <Image
-                src={`/images/samples/sample${i}.jpg`}
-                alt={`過去の受賞作品 ${i}`}
+                src={item.imageUrl}
+                alt={item.title}
                 fill
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-4">
-                <p className="text-sm font-semibold">2024 最優秀賞</p>
+                <p className="text-sm font-semibold truncate w-full">{item.title}</p>
               </div>
             </div>
           ))}

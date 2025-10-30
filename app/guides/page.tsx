@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -12,7 +13,23 @@ import {
   Filter,
   Plus,
   Sparkles,
+  Flame,
+  Cpu,
 } from 'lucide-react';
+
+type Classification = 'HOT' | 'アニメ' | '漫画' | '実写' | 'カメラワーク' | 'ワークフロー' | 'AIモデル';
+
+type AIModel =
+  | 'GPT-5'
+  | 'Sora2'
+  | 'Seedream'
+  | 'Seedance'
+  | 'Dreamina'
+  | 'Omnihuman'
+  | 'Hotgen General'
+  | 'Claude 4'
+  | 'Midjourney v7'
+  | 'DALL-E 4';
 
 interface Guide {
   id: number;
@@ -22,6 +39,9 @@ interface Guide {
   thumbnail: string;
   excerpt: string;
   category: string;
+  classifications: Classification[];
+  aiModels: AIModel[];
+  isHot: boolean;
   likes: number;
   comments: number;
   views: number;
@@ -30,9 +50,25 @@ interface Guide {
 }
 
 export default function GuidesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [sortBy, setSortBy] = useState<'popular' | 'recent'>('popular');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeClassification, setActiveClassification] = useState<Classification | 'all'>('all');
+  const [selectedAIModel, setSelectedAIModel] = useState<AIModel | 'all'>('all');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const model = searchParams.get('model');
+    if (tab && ['HOT', 'アニメ', '漫画', '実写', 'カメラワーク', 'ワークフロー', 'AIモデル'].includes(tab)) {
+      setActiveClassification(tab as Classification);
+      if (tab === 'AIモデル' && model) {
+        setSelectedAIModel(model as AIModel);
+      }
+    }
+  }, [searchParams]);
 
   const guides: Guide[] = [
     {
@@ -41,14 +77,135 @@ export default function GuidesPage() {
       author: 'AIマスター',
       authorAvatar: '/images/avatars/user1.jpg',
       thumbnail: '/images/samples/sample1.jpg',
-      excerpt:
-        '不気味で幻想的なハロウィンの雰囲気を作り出すためのプロンプトのコツを解説します。',
+      excerpt: '不気味で幻想的なハロウィンの雰囲気を作り出すためのプロンプトのコツを解説します。',
       category: 'プロンプト技術',
+      classifications: ['アニメ', 'カメラワーク', 'AIモデル'],
+      aiModels: ['Seedream', 'Midjourney v7'],
+      isHot: true,
       likes: 342,
       comments: 45,
       views: 2345,
       createdAt: '2025-10-20T10:00:00Z',
       tags: ['ハロウィン', 'プロンプト', '初心者向け'],
+    },
+    {
+      id: 2,
+      title: 'Seedreamで幽霊を描く方法',
+      author: 'クリエイター123',
+      authorAvatar: '/images/avatars/user2.jpg',
+      thumbnail: '/images/samples/sample2.jpg',
+      excerpt: 'Seedreamを使って透明感のある幽霊キャラクターを作成する手法を紹介します。',
+      category: 'モデル別攻略',
+      classifications: ['アニメ', 'ワークフロー', 'AIモデル'],
+      aiModels: ['Seedream'],
+      isHot: true,
+      likes: 278,
+      comments: 32,
+      views: 1876,
+      createdAt: '2025-10-19T14:30:00Z',
+      tags: ['Seedream', 'キャラクター', '中級者向け'],
+    },
+    {
+      id: 3,
+      title: 'アニメーション制作の基本：静止画から動画へ',
+      author: 'アニメーター',
+      authorAvatar: '/images/avatars/user3.jpg',
+      thumbnail: '/images/samples/sample3.jpg',
+      excerpt: '画像から動画生成の基本的なワークフローと、より自然な動きを作るコツを解説。',
+      category: 'アニメーション',
+      classifications: ['アニメ', 'ワークフロー'],
+      aiModels: [],
+      isHot: false,
+      likes: 189,
+      comments: 28,
+      views: 1543,
+      createdAt: '2025-10-18T09:15:00Z',
+      tags: ['アニメーション', 'チュートリアル', '動画生成'],
+    },
+    {
+      id: 4,
+      title: 'ホラー演出のためのライティングテクニック',
+      author: 'ライティングプロ',
+      authorAvatar: '/images/avatars/user4.jpg',
+      thumbnail: '/images/samples/sample4.jpg',
+      excerpt: '恐怖感を演出するライティング手法と、プロンプトでの光の表現方法を紹介。',
+      category: 'エフェクト・演出',
+      classifications: ['実写', 'カメラワーク'],
+      aiModels: [],
+      isHot: false,
+      likes: 156,
+      comments: 19,
+      views: 1234,
+      createdAt: '2025-10-17T16:45:00Z',
+      tags: ['ホラー', 'ライティング', '演出'],
+    },
+    {
+      id: 5,
+      title: 'かぼちゃのランタンを美しく描くコツ',
+      author: 'パンプキンマスター',
+      authorAvatar: '/images/avatars/user5.jpg',
+      thumbnail: '/images/samples/sample2.jpg',
+      excerpt: '定番のハロウィンアイテム、かぼちゃのランタンをリアルかつ魅力的に描く方法。',
+      category: 'オブジェクト制作',
+      classifications: ['実写', 'カメラワーク'],
+      aiModels: [],
+      isHot: true,
+      likes: 134,
+      comments: 15,
+      views: 987,
+      createdAt: '2025-10-16T11:20:00Z',
+      tags: ['ハロウィン', 'オブジェクト', '初心者向け'],
+    },
+    {
+      id: 6,
+      title: '魔女のキャラクターデザイン完全ガイド',
+      author: 'キャラデザイナー',
+      authorAvatar: '/images/avatars/user6.jpg',
+      thumbnail: '/images/samples/sample5.jpg',
+      excerpt: '魅力的な魔女キャラクターを作成するためのデザイン理論とプロンプト例。',
+      category: 'キャラクターデザイン',
+      classifications: ['漫画', 'アニメ'],
+      aiModels: [],
+      isHot: false,
+      likes: 98,
+      comments: 12,
+      views: 765,
+      createdAt: '2025-10-15T13:00:00Z',
+      tags: ['キャラクター', 'デザイン', '魔女'],
+    },
+    {
+      id: 7,
+      title: '実写風ポートレートの作り方',
+      author: 'フォトリアリストプロ',
+      authorAvatar: '/images/avatars/user7.jpg',
+      thumbnail: '/images/samples/sample6.jpg',
+      excerpt: 'AIで本物の写真のような実写風ポートレートを生成するテクニック。',
+      category: 'ポートレート',
+      classifications: ['実写', 'カメラワーク'],
+      aiModels: [],
+      isHot: true,
+      likes: 245,
+      comments: 38,
+      views: 1987,
+      createdAt: '2025-10-14T10:00:00Z',
+      tags: ['実写', 'ポートレート', 'リアル'],
+    },
+    {
+      id: 8,
+      title: '漫画風イラストの効率的なワークフロー',
+      author: 'マンガクリエイター',
+      authorAvatar: '/images/avatars/user8.jpg',
+      thumbnail: '/images/samples/sample7.jpg',
+      excerpt: '漫画風イラストを効率的に作成するためのワークフローとプロンプト戦略。',
+      category: 'ワークフロー',
+      classifications: ['漫画', 'ワークフロー'],
+      aiModels: [],
+      isHot: false,
+      likes: 167,
+      comments: 24,
+      views: 1432,
+      createdAt: '2025-10-13T15:30:00Z',
+      tags: ['漫画', 'ワークフロー', '効率化'],
     },
   ];
 
@@ -60,7 +217,63 @@ export default function GuidesPage() {
     'エフェクト・演出',
     'オブジェクト制作',
     'キャラクターデザイン',
+    'ポートレート',
+    'ワークフロー',
   ];
+
+  const classificationTabs: { value: Classification | 'all'; label: string; icon?: any }[] = [
+    { value: 'all', label: 'すべて' },
+    { value: 'HOT', label: 'HOT', icon: Flame },
+    { value: 'アニメ', label: 'アニメ' },
+    { value: '漫画', label: '漫画' },
+    { value: '実写', label: '実写' },
+    { value: 'カメラワーク', label: 'カメラワーク' },
+    { value: 'ワークフロー', label: 'ワークフロー' },
+    { value: 'AIモデル', label: 'AIモデル', icon: Cpu },
+  ];
+
+  const aiModelOptions: AIModel[] = [
+    'GPT-5',
+    'Sora2',
+    'Seedream',
+    'Seedance',
+    'Dreamina',
+    'Omnihuman',
+    'Hotgen General',
+    'Claude 4',
+    'Midjourney v7',
+    'DALL-E 4',
+  ];
+
+  const handleClassificationChange = (classification: Classification | 'all') => {
+    setActiveClassification(classification);
+    if (classification !== 'AIモデル') {
+      setSelectedAIModel('all');
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (classification === 'all') {
+      params.delete('tab');
+      params.delete('model');
+    } else {
+      params.set('tab', classification);
+      if (classification !== 'AIモデル') {
+        params.delete('model');
+      }
+    }
+    router.push(`/guides?${params.toString()}`, { scroll: false });
+  };
+
+  const handleAIModelChange = (model: AIModel | 'all') => {
+    setSelectedAIModel(model);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', 'AIモデル');
+    if (model === 'all') {
+      params.delete('model');
+    } else {
+      params.set('model', model);
+    }
+    router.push(`/guides?${params.toString()}`, { scroll: false });
+  };
 
   const sortedGuides = [...guides].sort((a, b) => {
     if (sortBy === 'popular') {
@@ -71,31 +284,41 @@ export default function GuidesPage() {
   });
 
   const filteredGuides = sortedGuides.filter((guide) => {
-    const categoryMatch =
-      selectedCategory === 'all' || guide.category === selectedCategory;
+    let classificationMatch = true;
+    if (activeClassification === 'HOT') {
+      classificationMatch = guide.isHot;
+    } else if (activeClassification === 'AIモデル') {
+      classificationMatch = guide.classifications.includes('AIモデル');
+      if (selectedAIModel !== 'all') {
+        classificationMatch = classificationMatch && guide.aiModels.includes(selectedAIModel);
+      }
+    } else if (activeClassification !== 'all') {
+      classificationMatch = guide.classifications.includes(activeClassification);
+    }
+
+    const categoryMatch = selectedCategory === 'all' || guide.category === selectedCategory;
+
     const searchMatch =
       searchQuery === '' ||
       guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       guide.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guide.tags.some((tag) =>
-        tag.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    return categoryMatch && searchMatch;
+      guide.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      guide.aiModels.some((m) => m.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return classificationMatch && categoryMatch && searchMatch;
   });
 
   return (
-    <div className="bg-gray-950 min-h-screen py-8">
-      <div className="container mx-auto px-6">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+    <div className="bg-gray-950 min-h-screen">
+      <div className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
                 <Sparkles className="text-purple-400" />
                 攻略・使い方
               </h1>
-              <p className="text-gray-400">
-                AIクリエイターのためのナレッジベース
-              </p>
+              <p className="text-gray-400">AIクリエイターのためのナレッジベース</p>
             </div>
             <Link
               href="/guides/new"
@@ -105,20 +328,76 @@ export default function GuidesPage() {
               記事を投稿
             </Link>
           </div>
-        </div>
 
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {classificationTabs.map((tab) => {
+              const isActive = activeClassification === tab.value;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => handleClassificationChange(tab.value)}
+                  className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-2 ${
+                    isActive
+                      ? tab.value === 'HOT'
+                        ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/50'
+                        : tab.value === 'AIモデル'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50'
+                        : 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                  }`}
+                >
+                  {Icon && (
+                    <Icon size={18} className={isActive && tab.value === 'HOT' ? 'animate-pulse' : ''} />
+                  )}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeClassification === 'AIモデル' && (
+            <div className="mt-4 bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <Cpu size={20} className="text-cyan-400" />
+                <span className="font-semibold">モデルで絞り込み</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleAIModelChange('all')}
+                  className={`px-4 py-2 rounded-lg font-semibold transition text-sm ${
+                    selectedAIModel === 'all' ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  すべてのモデル
+                </button>
+                {aiModelOptions.map((model) => (
+                  <button
+                    key={model}
+                    onClick={() => handleAIModelChange(model)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition text-sm ${
+                      selectedAIModel === model ? 'bg-cyan-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    }`}
+                  >
+                    {model}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8">
         <div className="bg-gray-800/50 rounded-xl p-4 mb-8 border border-gray-700">
           <div className="flex gap-4">
             <div className="flex-1 relative">
-              <Search
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="記事を検索..."
+                placeholder="記事やAIモデルを検索..."
                 className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
             </div>
@@ -177,22 +456,44 @@ export default function GuidesPage() {
                 <div className="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
                   {guide.category}
                 </div>
+                {guide.isHot && (
+                  <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-600 to-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg animate-pulse">
+                    <Flame size={14} />
+                    HOT
+                  </div>
+                )}
               </div>
 
               <div className="p-5">
                 <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-purple-400 transition">
                   {guide.title}
                 </h3>
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                  {guide.excerpt}
-                </p>
+                <p className="text-sm text-gray-400 mb-4 line-clamp-2">{guide.excerpt}</p>
+
+                {guide.aiModels.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {guide.aiModels.map((model) => (
+                      <span key={model} className="text-xs bg-gradient-to-r from-blue-900/50 to-cyan-900/50 text-cyan-300 px-2 py-1 rounded border border-cyan-700/50 flex items-center gap-1">
+                        <Cpu size={12} />
+                        {model}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {guide.classifications
+                    .filter((c) => c !== 'AIモデル')
+                    .map((classification) => (
+                      <span key={classification} className="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded border border-gray-600">
+                        {classification}
+                      </span>
+                    ))}
+                </div>
 
                 <div className="flex flex-wrap gap-2 mb-4">
                   {guide.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded"
-                    >
+                    <span key={tag} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
                       #{tag}
                     </span>
                   ))}
@@ -225,10 +526,16 @@ export default function GuidesPage() {
 
         {filteredGuides.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-400 text-lg">該当する記事がありません</p>
+            <p className="text-gray-400 text-lg mb-2">該当する記事がありません</p>
+            <p className="text-gray-500 text-sm">別の分類やカテゴリーを試してみてください</p>
           </div>
         )}
       </div>
+
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }

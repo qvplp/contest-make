@@ -13,6 +13,8 @@ import {
   Tag,
   Copy,
   Check,
+  Flame,
+  Cpu,
 } from 'lucide-react';
 
 export default function GuideDetailPage() {
@@ -32,6 +34,9 @@ export default function GuideDetailPage() {
     title: 'ハロウィン雰囲気を出すプロンプトテクニック10選',
     author: 'AIマスター',
     category: 'プロンプト技術',
+    classifications: ['アニメ', 'カメラワーク'],
+    aiModels: ['Seedream', 'Midjourney v7'],
+    isHot: true,
     tags: ['ハロウィン', 'プロンプト', '初心者向け'],
     views: 2345,
     createdAt: '2025-10-20T10:00:00Z',
@@ -44,7 +49,7 @@ export default function GuideDetailPage() {
         image: '/images/samples/sample1.jpg',
       },
     ],
-  };
+  } as const;
 
   const handleLike = () => {
     setHasLiked(!hasLiked);
@@ -76,10 +81,39 @@ export default function GuideDetailPage() {
     <div className="bg-gray-950 min-h-screen py-8">
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="mb-8">
+          {/* カテゴリーと分類タグ */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
               {guide.category}
             </span>
+
+            {guide.isHot && (
+              <span className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 animate-pulse">
+                <Flame size={14} />
+                HOT
+              </span>
+            )}
+
+            {/* AIモデルタグ */}
+            {guide.aiModels?.map((model) => (
+              <span
+                key={model}
+                className="bg-gradient-to-r from-blue-900/50 to-cyan-900/50 text-cyan-300 px-3 py-1 rounded-full text-sm border border-cyan-700/50 flex items-center gap-1"
+              >
+                <Cpu size={14} />
+                {model}
+              </span>
+            ))}
+
+            {guide.classifications.map((classification) => (
+              <span
+                key={classification}
+                className="bg-gray-800 text-gray-300 px-3 py-1 rounded-full text-sm border border-gray-700"
+              >
+                {classification}
+              </span>
+            ))}
+
             {guide.tags.map((tag) => (
               <span
                 key={tag}
@@ -113,9 +147,7 @@ export default function GuideDetailPage() {
           <button
             onClick={handleLike}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-              hasLiked
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              hasLiked ? 'bg-purple-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
             }`}
           >
             <ThumbsUp size={18} fill={hasLiked ? 'currentColor' : 'none'} />
@@ -129,9 +161,7 @@ export default function GuideDetailPage() {
 
         <div className="bg-gray-800/50 rounded-xl p-8 mb-8 border border-gray-700">
           <div className="prose prose-invert max-w-none">
-            <p className="text-gray-300 mb-4 leading-relaxed">
-              {guide.content}
-            </p>
+            <p className="text-gray-300 mb-4 leading-relaxed">{guide.content}</p>
           </div>
         </div>
 
@@ -139,34 +169,20 @@ export default function GuideDetailPage() {
           <h2 className="text-3xl font-bold mb-6">プロンプト例</h2>
           <div className="space-y-6">
             {guide.prompts.map((prompt) => (
-              <div
-                key={prompt.id}
-                className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700"
-              >
+              <div key={prompt.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="aspect-square relative">
-                    <Image
-                      src={prompt.image}
-                      alt={prompt.title}
-                      fill
-                      className="object-cover"
-                    />
+                    <Image src={prompt.image} alt={prompt.title} fill className="object-cover" />
                   </div>
                   <div className="p-6 flex flex-col">
                     <h3 className="font-bold text-xl mb-3">{prompt.title}</h3>
                     <div className="bg-gray-900 rounded-lg p-4 mb-4 flex-1 relative">
-                      <code className="text-sm text-gray-300 block">
-                        {prompt.text}
-                      </code>
+                      <code className="text-sm text-gray-300 block">{prompt.text}</code>
                       <button
                         onClick={() => copyPrompt(prompt.id, prompt.text)}
                         className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
                       >
-                        {copiedPrompt === prompt.id ? (
-                          <Check size={16} className="text-green-400" />
-                        ) : (
-                          <Copy size={16} />
-                        )}
+                        {copiedPrompt === prompt.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
                       </button>
                     </div>
                     <button
@@ -197,28 +213,20 @@ export default function GuideDetailPage() {
               rows={4}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none mb-4"
             />
-            <button
-              onClick={handleComment}
-              className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition"
-            >
+            <button onClick={handleComment} className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition">
               コメントする
             </button>
           </div>
 
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
-              >
+              <div key={comment.id} className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="font-semibold">{comment.author}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(comment.date).toLocaleDateString('ja-JP')}
-                      </span>
+                      <span className="text-sm text-gray-500">{new Date(comment.date).toLocaleDateString('ja-JP')}</span>
                     </div>
                     <p className="text-gray-300">{comment.text}</p>
                   </div>
