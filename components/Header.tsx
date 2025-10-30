@@ -13,7 +13,7 @@ export default function Header() {
         {/* ロゴ */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
           <span className="text-2xl font-bold text-red-500">🦇</span>
-          <span className="text-xl font-bold">Sousaku.AI</span>
+          <span className="text-xl font-bold">AnimeHub</span>
         </Link>
 
         {/* ナビゲーション */}

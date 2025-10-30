@@ -34,7 +34,7 @@ export default function LoginPage() {
           <div className="inline-block">
             <div className="text-6xl mb-4">🦇</div>
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-red-500 to-purple-500 bg-clip-text text-transparent">
-              Sousaku.AI
+              AnimeHub
             </h1>
             <p className="text-gray-400">AIで創作を楽しもう</p>
           </div>

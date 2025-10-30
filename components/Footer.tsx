@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* ブランド */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Sousaku.AI</h3>
+            <h3 className="text-xl font-bold mb-4">AnimeHub</h3>
             <p className="text-gray-400 text-sm">
               AIで創作を楽しむプラットフォーム
             </p>
@@ -70,7 +70,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-6 text-center text-sm text-gray-400">
-          © 2025 Sousaku.AI — ハロウィンカップ2025
+          © 2025 AnimeHub — ハロウィンカップ2025
         </div>
       </div>
     </footer>

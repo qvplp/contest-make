@@ -49,7 +49,7 @@ export default function HalloweenContestPage() {
 
   const rules = [
     'オリジナル作品であり、著作権侵害に当たらないもの、未発表の新作であるもの。',
-    '作品の少なくとも70%がSousaku.AIで作成されていること。',
+    '作品の少なくとも70%がAnimeHubで作成されていること。',
     '使用可能なモデル：Seedream / Seedance / Dreamina / Omnihuman / Hotgen General。',
     '動画の長さは、10秒から5分の間でなければなりません。',
     '音声はオリジナルまたはライセンス取得済みであること',

@@ -8,7 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Sousaku.AI - ハロウィンカップ2025',
+  title: 'AnimeHub - ハロウィンカップ2025',
   description: 'AIで創作を楽しむプラットフォーム',
 };
 

@@ -195,7 +195,7 @@ export default function SubmitPage() {
               <h3 className="font-semibold mb-2">応募前の確認事項</h3>
               <ul className="text-sm text-gray-300 space-y-1">
                 <li>• オリジナル作品であること</li>
-                <li>• 作品の70%以上がSousaku.AIで作成されていること</li>
+                <li>• 作品の70%以上がAnimeHubで作成されていること</li>
                 <li>• 動画は10秒〜5分、最大300MB</li>
                 <li>• 音声はオリジナルまたはライセンス取得済みであること</li>
               </ul>
