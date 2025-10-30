@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -49,7 +49,7 @@ interface Guide {
   tags: string[];
 }
 
-export default function GuidesPage() {
+function GuidesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -537,6 +537,14 @@ export default function GuidesPage() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
+  );
+}
+
+export default function GuidesPage() {
+  return (
+    <Suspense fallback={<div className="bg-gray-950 min-h-screen"><div className="container mx-auto px-6 py-16 text-gray-400">読み込み中...</div></div>}>
+      <GuidesPageContent />
+    </Suspense>
   );
 }
 
