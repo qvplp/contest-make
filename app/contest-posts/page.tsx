@@ -496,6 +496,7 @@ export default function ContestPostsPage() {
           <div className="text-center py-8 text-gray-400">すべての作品を読み込みました</div>
         )}
       </div>
+      </div>
     </Suspense>
   );
 }
