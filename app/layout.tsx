@@ -1,17 +1,62 @@
-import type { Metadata } from 'next';
+'use client';
+
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'Sousaku.AI - AI創作プラットフォーム',
-  description: 'AIを使った創作活動のためのプラットフォーム',
-};
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const { isLoggedIn } = useAuth();
+
+  // 認証ページのリスト（サイドバーとヘッダーを表示しない）
+  const authPages = [
+    '/login',
+    '/signup',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+  ];
+
+  // 現在のパスが認証ページかどうか
+  const isAuthPage = authPages.includes(pathname);
+
+  return (
+    <>
+      {/* 認証ページの場合: サイドバーとヘッダーなし */}
+      {isAuthPage ? (
+        <div className="min-h-screen">
+          {children}
+        </div>
+      ) : (
+        // 通常ページ: サイドバーとヘッダーあり
+        <div className="flex min-h-screen">
+          {/* Sidebar - ログイン時のみ表示 */}
+          {isLoggedIn && <Sidebar />}
+
+          {/* Main Content Area */}
+          <div className={isLoggedIn ? 'flex-1 ml-64' : 'flex-1'}>
+            {/* Header - 全ページで表示 */}
+            <Header />
+
+            {/* Page Content */}
+            <main className="pt-16">
+              {children}
+            </main>
+
+            {/* Footer */}
+            <Footer />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -22,24 +67,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} bg-gray-950 text-white`}>
         <AuthProvider>
-          <div className="flex min-h-screen">
-            {/* Sidebar - 全ページで表示（ログイン時のみ） */}
-            <Sidebar />
-
-            {/* Main Content Area */}
-            <div className="flex-1 ml-64">
-              {/* Header - 全ページで表示 */}
-              <Header />
-
-              {/* Page Content */}
-              <main className="pt-16">
-                {children}
-              </main>
-
-              {/* Footer */}
-              <Footer />
-            </div>
-          </div>
+          <LayoutContent>{children}</LayoutContent>
         </AuthProvider>
       </body>
     </html>
