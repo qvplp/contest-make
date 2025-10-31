@@ -55,7 +55,8 @@ interface ContestPost {
   contest: string;
 }
 
-export default function ContestPostsPage() {
+// useSearchParams を使う内部コンポーネント（Suspense境界内で使用）
+function ContestPostsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -209,7 +210,6 @@ export default function ContestPostsPage() {
       createdAt: '2025-10-18T10:45:00Z',
       contest: 'halloween2025',
     },
-    // 追加のモックデータ（抜粋）
     {
       id: 9,
       title: '月夜の狼男',
@@ -242,7 +242,6 @@ export default function ContestPostsPage() {
       createdAt: '2025-10-16T14:20:00Z',
       contest: 'halloween2025',
     },
-    // ...（以降同様のモックデータ）
   ];
 
   const classificationTabs: { value: Classification | 'all'; label: string; icon?: any }[] = [
@@ -369,8 +368,7 @@ export default function ContestPostsPage() {
   }, [displayedPosts, hasMore]);
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-300">読み込み中...</div>}>
-      <div className="bg-gray-950 min-h-screen">
+    <div className="bg-gray-950 min-h-screen">
       <div className="bg-gray-900 border-b border-gray-800">
         <div className="container mx-auto px-6 py-8">
           <div className="flex items-center justify-between mb-6">
@@ -496,9 +494,15 @@ export default function ContestPostsPage() {
           <div className="text-center py-8 text-gray-400">すべての作品を読み込みました</div>
         )}
       </div>
-      </div>
-    </Suspense>
+    </div>
   );
 }
 
-
+// メインコンポーネント（Suspense境界でラップ）
+export default function ContestPostsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-300">読み込み中...</div>}>
+      <ContestPostsContent />
+    </Suspense>
+  );
+}

@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "next telemetry disable || true"
+  },
+  "engines": {
+    "node": ">=20 <23"
   },
   "dependencies": {
     "lucide-react": "^0.548.0",
