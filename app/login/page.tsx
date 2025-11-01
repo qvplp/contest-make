@@ -85,7 +85,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center gap-2 text-3xl font-bold mb-2">
             <span className="text-4xl">🦇</span>
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Sousaku.AI
+              AnimeHub
             </span>
           </div>
           <p className="text-gray-400">AI創作プラットフォーム</p>

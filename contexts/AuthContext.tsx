@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // localStorageから認証状態を復元
-    const storedUser = localStorage.getItem('sousaku_user');
+    const storedUser = localStorage.getItem('animehub_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsLoggedIn(true);
@@ -34,13 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (userData: User) => {
     setUser(userData);
     setIsLoggedIn(true);
-    localStorage.setItem('sousaku_user', JSON.stringify(userData));
+    localStorage.setItem('animehub_user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     setIsLoggedIn(false);
-    localStorage.removeItem('sousaku_user');
+    localStorage.removeItem('animehub_user');
   };
 
   return (

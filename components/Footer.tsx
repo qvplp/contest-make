@@ -48,7 +48,7 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">コミュニティ</h4>
             <div className="flex gap-4">
               <a
-                href="https://discord.gg/sousaku"
+                href="https://discord.gg/animehub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition"
@@ -56,7 +56,7 @@ export default function Footer() {
                 <MessageCircle size={24} />
               </a>
               <a
-                href="https://x.com/sousaku_ai"
+                href="https://x.com/animehub_ai"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition"
