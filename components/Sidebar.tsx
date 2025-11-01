@@ -14,10 +14,16 @@ import {
   HelpCircle,
   Coins,
   CreditCard,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isMobileMenuOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
@@ -52,15 +58,42 @@ export default function Sidebar() {
     return pathname.startsWith(path);
   };
 
+  // メニューアイテムをクリックしたらモバイルメニューを閉じる
+  const handleMenuItemClick = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   if (!userData) {
     return null; // ログインしていない場合はサイドバーを非表示
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-50">
+    <aside
+      className={`
+        fixed left-0 top-0 h-screen w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-50
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}
+    >
+      {/* モバイル用閉じるボタン */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+        aria-label="メニューを閉じる"
+      >
+        <X size={24} />
+      </button>
+
       {/* Logo */}
       <div className="p-6">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
+        <Link
+          href="/"
+          onClick={handleMenuItemClick}
+          className="flex items-center gap-2 text-xl font-bold"
+        >
           <span className="text-2xl">🦇</span>
           <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             AnimeHub
@@ -69,14 +102,15 @@ export default function Sidebar() {
       </div>
 
       {/* User Profile Section - クリックでマイページへ */}
-      <Link href="/profile">
+      <Link href="/profile" onClick={handleMenuItemClick}>
         <div className="mx-4 mb-4 p-4 rounded-lg border border-gray-800 hover:border-purple-600 hover:bg-gray-800/50 transition-all cursor-pointer group">
           <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-600 group-hover:border-purple-400 transition-colors">
+            <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-purple-600 group-hover:border-purple-400 transition-colors flex-shrink-0">
               <Image
                 src={userData.avatar}
                 alt={userData.name}
                 fill
+                sizes="48px"
                 className="object-cover"
               />
             </div>
@@ -101,7 +135,7 @@ export default function Sidebar() {
         <div className="text-3xl font-bold text-white mb-3">
           {userData.credits}
         </div>
-        <Link href="/settings/payment">
+        <Link href="/settings/payment" onClick={handleMenuItemClick}>
           <button className="w-full py-2 px-4 bg-white hover:bg-gray-100 text-purple-600 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
             <CreditCard size={18} />
             チャージする
@@ -119,6 +153,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleMenuItemClick}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   active
                     ? 'bg-purple-600 text-white'
@@ -143,6 +178,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleMenuItemClick}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   active
                     ? 'bg-purple-600 text-white'
@@ -156,7 +192,10 @@ export default function Sidebar() {
           })}
         </div>
         <button
-          onClick={logout}
+          onClick={() => {
+            handleMenuItemClick();
+            logout();
+          }}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-900/20 transition-colors text-gray-400 hover:text-red-400 mt-2"
         >
           <span className="text-sm font-medium">ログアウト</span>

@@ -76,7 +76,7 @@ export default function HalloweenContestPage() {
   return (
     <div className="bg-gray-950 min-h-screen">
       {/* ヒーローセクション */}
-      <section className="relative h-[600px] overflow-hidden">
+      <section className="relative h-[400px] sm:h-[500px] md:h-[600px] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-900 via-purple-900 to-gray-900">
           <div className="absolute inset-0 opacity-20">
             {/* ハロウィン装飾の背景画像 */}
@@ -94,69 +94,69 @@ export default function HalloweenContestPage() {
             🎃 Halloween Creation Cup 2025 🎃
           </div>
           
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-orange-400 via-red-500 to-purple-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-orange-400 via-red-500 to-purple-500 bg-clip-text text-transparent">
             Halloween Creation Cup 2025
           </h1>
           
-          <p className="text-2xl text-gray-200 mb-8 max-w-3xl">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 sm:mb-8 max-w-3xl">
             AIの力で最高のハロウィン作品を創造しよう！<br />
             総額50万円の賞金をかけた創作コンテスト
           </p>
 
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
             {isLoggedIn ? (
               <>
                 <Link
                   href="/contest/halloween2025/vote"
-                  className="bg-purple-600 hover:bg-purple-700 px-8 py-4 rounded-lg font-bold text-lg transition flex items-center gap-2"
+                  className="bg-purple-600 hover:bg-purple-700 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition flex items-center justify-center gap-2"
                 >
-                  <Heart size={24} />
+                  <Heart className="sm:w-6 sm:h-6" size={20} />
                   作品に投票する
                 </Link>
                 <Link
                   href="/contest/halloween2025/submit"
-                  className="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-lg font-bold text-lg transition flex items-center gap-2"
+                  className="bg-red-600 hover:bg-red-700 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition flex items-center justify-center gap-2"
                 >
-                  <Upload size={24} />
+                  <Upload className="sm:w-6 sm:h-6" size={20} />
                   作品を応募する
                 </Link>
               </>
             ) : (
               <Link
                 href="/login"
-                className="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-lg font-bold text-lg transition flex items-center gap-2"
+                className="bg-red-600 hover:bg-red-700 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition flex items-center justify-center gap-2"
               >
                 ログインして参加する
-                <ArrowRight size={24} />
+                <ArrowRight className="sm:w-6 sm:h-6" size={20} />
               </Link>
             )}
           </div>
 
           {/* 統計情報 */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-              <Trophy className="text-yellow-400 mb-2 mx-auto" size={32} />
-              <div className="text-3xl font-bold">¥500,000</div>
-              <div className="text-gray-300">総賞金額</div>
+          <div className="mt-8 sm:mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-gray-700">
+              <Trophy className="text-yellow-400 mb-2 mx-auto sm:w-8 sm:h-8" size={24} />
+              <div className="text-2xl sm:text-3xl font-bold">¥500,000</div>
+              <div className="text-sm sm:text-base text-gray-300">総賞金額</div>
             </div>
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-              <Users className="text-purple-400 mb-2 mx-auto" size={32} />
-              <div className="text-3xl font-bold">1,234</div>
-              <div className="text-gray-300">応募作品数</div>
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-gray-700">
+              <Users className="text-purple-400 mb-2 mx-auto sm:w-8 sm:h-8" size={24} />
+              <div className="text-2xl sm:text-3xl font-bold">1,234</div>
+              <div className="text-sm sm:text-base text-gray-300">応募作品数</div>
             </div>
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
-              <Heart className="text-red-400 mb-2 mx-auto" size={32} />
-              <div className="text-3xl font-bold">12,345</div>
-              <div className="text-gray-300">総投票数</div>
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 sm:p-6 border border-gray-700">
+              <Heart className="text-red-400 mb-2 mx-auto sm:w-8 sm:h-8" size={24} />
+              <div className="text-2xl sm:text-3xl font-bold">12,345</div>
+              <div className="text-sm sm:text-base text-gray-300">総投票数</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* タイムライン */}
-      <section className="container mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12 flex items-center justify-center gap-3">
-          <Clock className="text-purple-400" />
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-12 flex items-center justify-center gap-3">
+          <Clock className="text-purple-400 sm:w-7 sm:h-7" size={24} />
           スケジュール
         </h2>
         
@@ -185,9 +185,9 @@ export default function HalloweenContestPage() {
               </div>
               
               {/* コンテンツ */}
-              <div className="flex-1 bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                <div className="font-bold text-lg mb-2">{item.date}</div>
-                <div className="text-gray-300">{item.event}</div>
+              <div className="flex-1 bg-gray-800/50 rounded-lg p-4 sm:p-6 border border-gray-700">
+                <div className="font-bold text-base sm:text-lg mb-2">{item.date}</div>
+                <div className="text-sm sm:text-base text-gray-300">{item.event}</div>
                 {item.status === 'active' && (
                   <div className="mt-2 inline-block bg-purple-600 text-white px-3 py-1 rounded-full text-sm">
                     開催中
@@ -200,9 +200,9 @@ export default function HalloweenContestPage() {
       </section>
 
       {/* 賞金・賞の情報 */}
-      <section className="container mx-auto px-6 py-16 bg-gradient-to-b from-transparent to-purple-900/20">
-        <h2 className="text-4xl font-bold text-center mb-12 flex items-center justify-center gap-3">
-          <Trophy className="text-yellow-400" />
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16 bg-gradient-to-b from-transparent to-purple-900/20">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-12 flex items-center justify-center gap-3">
+          <Trophy className="text-yellow-400 sm:w-7 sm:h-7" size={24} />
           賞金と賞
         </h2>
         
@@ -237,10 +237,10 @@ export default function HalloweenContestPage() {
       </section>
 
       {/* 作品投稿規定 */}
-      <section className="container mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12">作品投稿規定</h2>
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-12">作品投稿規定</h2>
         
-        <div className="max-w-4xl mx-auto bg-gray-800/50 rounded-xl p-8 border border-gray-700">
+        <div className="max-w-4xl mx-auto bg-gray-800/50 rounded-xl p-4 sm:p-6 lg:p-8 border border-gray-700">
           <ul className="space-y-4">
             {rules.map((rule, index) => (
               <li key={index} className="flex gap-4">
@@ -253,10 +253,10 @@ export default function HalloweenContestPage() {
       </section>
 
       {/* 応募中の作品グリッド */}
-      <section className="container mx-auto px-6 py-16 bg-gradient-to-b from-transparent to-gray-900/50">
-        <h2 className="text-4xl font-bold text-center mb-12">応募中の作品</h2>
+      <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16 bg-gradient-to-b from-transparent to-gray-900/50">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center mb-6 sm:mb-12">応募中の作品</h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
           {currentSubmissions.map((item) => (
             <div
               key={item.id}
@@ -277,39 +277,39 @@ export default function HalloweenContestPage() {
       </section>
 
       {/* CTA セクション */}
-      <section className="container mx-auto px-6 py-20">
-        <div className="bg-gradient-to-r from-red-900/50 to-purple-900/50 rounded-2xl p-12 text-center border border-red-800/50">
-          <h2 className="text-4xl font-bold mb-6">
+      <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <div className="bg-gradient-to-r from-red-900/50 to-purple-900/50 rounded-2xl p-6 sm:p-8 lg:p-12 text-center border border-red-800/50">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
             準備はできましたか？
           </h2>
-          <p className="text-xl text-gray-300 mb-8">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-300 mb-6 sm:mb-8">
             あなたの創造力を世界に発信しましょう！
           </p>
           
           {isLoggedIn ? (
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
               <Link
                 href="/contest/halloween2025/submit"
-                className="bg-red-600 hover:bg-red-700 px-10 py-4 rounded-lg font-bold text-lg transition inline-flex items-center gap-2"
+                className="bg-red-600 hover:bg-red-700 px-6 sm:px-10 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition inline-flex items-center justify-center gap-2"
               >
-                <Upload size={24} />
+                <Upload className="sm:w-6 sm:h-6" size={20} />
                 作品を応募する
               </Link>
               <Link
                 href="/contest/halloween2025/vote"
-                className="bg-purple-600 hover:bg-purple-700 px-10 py-4 rounded-lg font-bold text-lg transition inline-flex items-center gap-2"
+                className="bg-purple-600 hover:bg-purple-700 px-6 sm:px-10 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition inline-flex items-center justify-center gap-2"
               >
-                <Heart size={24} />
+                <Heart className="sm:w-6 sm:h-6" size={20} />
                 作品に投票する
               </Link>
             </div>
           ) : (
             <Link
               href="/login"
-              className="bg-red-600 hover:bg-red-700 px-10 py-4 rounded-lg font-bold text-lg transition inline-flex items-center gap-2"
+              className="bg-red-600 hover:bg-red-700 px-6 sm:px-10 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition inline-flex items-center justify-center gap-2"
             >
               ログインして参加する
-              <ArrowRight size={24} />
+              <ArrowRight className="sm:w-6 sm:h-6" size={20} />
             </Link>
           )}
         </div>

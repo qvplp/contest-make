@@ -28,3 +28,30 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgb(107 114 128); /* bg-gray-500 */
 }
+
+/* スクロールバーを隠す（水平スクロール用） */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* レスポンシブ画像の最適化 */
+.responsive-image-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background-color: rgb(31 41 55);
+}
+
+.responsive-image {
+  object-fit: cover;
+  transition: transform 0.3s ease-in-out;
+}
+
+.responsive-image-container:hover .responsive-image {
+  transform: scale(1.05);
+}

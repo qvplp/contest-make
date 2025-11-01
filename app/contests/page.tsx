@@ -99,21 +99,21 @@ export default function ContestsPage() {
   };
 
   return (
-    <div className="bg-gray-950 min-h-screen py-8">
-      <div className="container mx-auto px-6">
+    <div className="bg-gray-950 min-h-screen py-6 sm:py-8">
+      <div className="container mx-auto px-4 sm:px-6">
         {/* ヘッダー */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-            <Trophy className="text-yellow-400" />
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
+            <Trophy className="text-yellow-400" size={28} />
             コンテスト一覧
           </h1>
-          <p className="text-gray-400">
+          <p className="text-sm sm:text-base text-gray-400">
             開催中・過去・今後のコンテストをチェックしよう
           </p>
         </div>
 
         {/* 検索とフィルター */}
-        <div className="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700">
+        <div className="bg-gray-800/50 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 border border-gray-700">
           <div className="flex flex-col md:flex-row gap-4">
             {/* 検索 */}
             <div className="flex-1 relative">
@@ -126,7 +126,7 @@ export default function ContestsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="コンテストを検索..."
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-2 sm:py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
             </div>
 
@@ -156,7 +156,7 @@ export default function ContestsPage() {
         </div>
 
         {/* コンテスト一覧 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredContests.map((contest) => (
             <Link
               key={contest.id}
@@ -164,12 +164,13 @@ export default function ContestsPage() {
               className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
             >
               {/* サムネイル */}
-              <div className="aspect-video relative">
+              <div className="relative aspect-video overflow-hidden rounded-t-xl bg-gray-800">
                 <Image
                   src={contest.thumbnail}
                   alt={contest.title}
                   fill
-                  className="object-cover group-hover:scale-105 transition duration-300"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute top-4 left-4">
                   {getStatusBadge(contest.status)}
@@ -177,11 +178,11 @@ export default function ContestsPage() {
               </div>
 
               {/* コンテンツ */}
-              <div className="p-6">
-                <h3 className="font-bold text-xl mb-2 group-hover:text-purple-400 transition">
+              <div className="p-4 sm:p-6">
+                <h3 className="font-bold text-lg sm:text-xl mb-2 group-hover:text-purple-400 transition">
                   {contest.title}
                 </h3>
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">
+                <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4 line-clamp-2">
                   {contest.description}
                 </p>
 

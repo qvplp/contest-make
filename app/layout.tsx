@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
@@ -13,6 +14,7 @@ const inter = Inter({ subsets: ['latin'] });
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isLoggedIn } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // 認証ページのリスト（サイドバーとヘッダーを表示しない）
   const authPages = [
@@ -26,6 +28,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   // 現在のパスが認証ページかどうか
   const isAuthPage = authPages.includes(pathname);
 
+  // メニューを閉じる
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <>
       {/* 認証ページの場合: サイドバーとヘッダーなし */}
@@ -35,24 +42,53 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       ) : (
         // 通常ページ: サイドバーとヘッダーあり
-        <div className="flex min-h-screen">
-          {/* Sidebar - ログイン時のみ表示 */}
-          {isLoggedIn && <Sidebar />}
+        <>
+          {isLoggedIn ? (
+            <div className="flex min-h-screen">
+              {/* Sidebar - デスクトップ: 常に表示, モバイル: オーバーレイ */}
+              <Sidebar
+                isMobileMenuOpen={isMobileMenuOpen}
+                onClose={closeMobileMenu}
+              />
 
-          {/* Main Content Area */}
-          <div className={isLoggedIn ? 'flex-1 ml-64' : 'flex-1'}>
-            {/* Header - 全ページで表示 */}
-            <Header />
+              {/* モバイル用オーバーレイ */}
+              {isMobileMenuOpen && (
+                <div
+                  onClick={closeMobileMenu}
+                  className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                  aria-hidden="true"
+                />
+              )}
 
-            {/* Page Content */}
-            <main className="pt-16">
-              {children}
-            </main>
+              {/* Main Content Area */}
+              <div className="flex-1 lg:ml-64">
+                {/* Header */}
+                <Header
+                  onMenuClick={() => setIsMobileMenuOpen(true)}
+                />
 
-            {/* Footer */}
-            <Footer />
-          </div>
-        </div>
+                {/* Page Content */}
+                <main className="pt-16">
+                  {children}
+                </main>
+
+                {/* Footer */}
+                <Footer />
+              </div>
+            </div>
+          ) : (
+            // ログアウト時
+            <div className="min-h-screen">
+              <Header
+                onMenuClick={() => setIsMobileMenuOpen(true)}
+              />
+              <main className="pt-16">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          )}
+        </>
       )}
     </>
   );

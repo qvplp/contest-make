@@ -141,38 +141,44 @@ export default function ProfilePage() {
   return (
     <div className="bg-gray-950 min-h-screen">
       <div className="bg-gray-900 border-b border-gray-800">
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-4xl font-bold">マイページ</h1>
-            <Link href="/" className="text-purple-400 hover:text-purple-300 transition">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">マイページ</h1>
+            <Link href="/" className="text-purple-400 hover:text-purple-300 transition text-sm sm:text-base">
               ← ホームに戻る
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="bg-gray-900 rounded-xl p-8 mb-8 border border-gray-800">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-shrink-0">
-              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-purple-600">
-                <Image src={userProfile.avatar} alt={userProfile.username} fill className="object-cover" />
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="bg-gray-900 rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800">
+          <div className="flex flex-col md:flex-row gap-4 sm:gap-6 lg:gap-8">
+            <div className="flex-shrink-0 mx-auto md:mx-0">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-purple-600">
+                <Image
+                  src={userProfile.avatar}
+                  alt={userProfile.username}
+                  fill
+                  sizes="(max-width: 640px) 96px, (max-width: 768px) 128px, 160px"
+                  className="object-cover"
+                />
               </div>
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">{userProfile.username}</h2>
-                  <p className="text-gray-400 mb-2">@{userProfile.userId}</p>
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">{userProfile.username}</h2>
+                  <p className="text-sm sm:text-base text-gray-400 mb-2">@{userProfile.userId}</p>
                 </div>
-                <Link href="/profile/edit" className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 whitespace-nowrap">
-                  <Edit size={20} />
-                  プロフィールを編集
+                <Link href="/profile/edit" className="bg-purple-600 hover:bg-purple-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition flex items-center gap-2 whitespace-nowrap justify-center md:justify-start">
+                  <Edit size={18} className="sm:w-5 sm:h-5" />
+                  <span className="text-sm sm:text-base">プロフィールを編集</span>
                 </Link>
               </div>
 
-              <p className="text-gray-300 mb-4 leading-relaxed">{userProfile.bio}</p>
+              <p className="text-sm sm:text-base text-gray-300 mb-4 leading-relaxed">{userProfile.bio}</p>
 
               <div className="flex gap-4 mb-4">
                 {userProfile.social.twitter && (
@@ -207,18 +213,18 @@ export default function ProfilePage() {
         </div>
 
         {badges.length > 0 && (
-          <div className="bg-gray-900 rounded-xl p-8 mb-8 border border-gray-800">
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Trophy className="text-yellow-400" />
+          <div className="bg-gray-900 rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-800">
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-3 sm:mb-6 flex items-center gap-2">
+              <Trophy className="text-yellow-400" size={24} />
               受賞履歴
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {badges.map((badge) => (
-                <Link key={badge.id} href={`/contests/${badge.contest.toLowerCase().replace(/\s+/g, '-')}`} className={`bg-gradient-to-br ${badgeStyles[badge.type]} rounded-xl p-6 text-center hover:scale-105 transition`}>
-                  <div className="text-5xl mb-2">{badge.icon}</div>
-                  <div className="font-bold mb-1">{badge.contest}</div>
-                  <div className="text-sm">{badge.rank > 0 ? `${badge.rank}位` : ''}</div>
-                  <div className="text-sm opacity-80">{badge.year}</div>
+                <Link key={badge.id} href={`/contests/${badge.contest.toLowerCase().replace(/\s+/g, '-')}`} className={`bg-gradient-to-br ${badgeStyles[badge.type]} rounded-xl p-3 sm:p-4 lg:p-6 text-center hover:scale-105 transition`}>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl mb-2">{badge.icon}</div>
+                  <div className="font-bold text-xs sm:text-sm lg:text-base mb-1">{badge.contest}</div>
+                  <div className="text-xs sm:text-sm">{badge.rank > 0 ? `${badge.rank}位` : ''}</div>
+                  <div className="text-xs sm:text-sm opacity-80">{badge.year}</div>
                 </Link>
               ))}
             </div>
@@ -248,17 +254,23 @@ export default function ProfilePage() {
 
         {activeTab === 'guides' && (
           <div>
-            <h3 className="text-2xl font-bold mb-6">投稿した攻略記事 ({userGuides.length}件)</h3>
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6">投稿した攻略記事 ({userGuides.length}件)</h3>
             {userGuides.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                 {userGuides.map((guide) => (
-                  <Link key={guide.id} href={`/guides/${guide.id}`} className="bg-gray-900 rounded-xl overflow-hidden hover:scale-105 transition border border-gray-800 group">
-                    <div className="aspect-video relative">
-                      <Image src={guide.thumbnail} alt={guide.title} fill className="object-cover" />
+                  <Link key={guide.id} href={`/guides/${guide.id}`} className="bg-gray-900 rounded-xl overflow-hidden hover:ring-2 hover:ring-purple-600 transition border border-gray-800 group">
+                    <div className="relative aspect-video overflow-hidden rounded-t-xl bg-gray-800">
+                      <Image
+                        src={guide.thumbnail}
+                        alt={guide.title}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-105 transition-transform"
+                      />
                     </div>
-                    <div className="p-4">
-                      <h4 className="font-semibold mb-3 line-clamp-2 group-hover:text-purple-400 transition">{guide.title}</h4>
-                      <div className="flex items-center gap-4 text-xs text-gray-400">
+                    <div className="p-3 sm:p-4">
+                      <h4 className="font-semibold text-sm sm:text-base mb-2 line-clamp-2 group-hover:text-purple-400 transition">{guide.title}</h4>
+                      <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400">
                         <span className="flex items-center gap-1"><ThumbsUp size={14} />{guide.likes}</span>
                         <span className="flex items-center gap-1"><MessageCircle size={14} />{guide.comments}</span>
                         <span className="flex items-center gap-1"><Eye size={14} />{guide.views.toLocaleString()}</span>
@@ -279,31 +291,36 @@ export default function ProfilePage() {
 
         {activeTab === 'posts' && (
           <div>
-            <h3 className="text-2xl font-bold mb-6">投稿した作品 ({userPosts.length}件)</h3>
+            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6">投稿した作品 ({userPosts.length}件)</h3>
             {userPosts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 {userPosts.map((post) => (
                   <Link key={post.id} href={`/contest-posts/${post.id}`} className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition">
-                    <div className="aspect-square relative">
-                      <Image src={post.thumbnail} alt={post.title} fill className="object-cover" />
+                    <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-800">
+                      <Image
+                        src={post.thumbnail}
+                        alt={post.title}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                        className="object-cover group-hover:scale-110 transition-transform"
+                      />
                       {post.isHot && (
-                        <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-600 to-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                          <Flame size={12} className="animate-pulse" />
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded text-xs font-bold flex items-center gap-1">
+                          <Flame size={12} />
                           HOT
                         </div>
                       )}
                       {post.type === 'video' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Play className="text-white" size={40} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black/70 rounded-full flex items-center justify-center">
+                            <Play className="text-white" fill="white" size={20} />
+                          </div>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition">
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-sm font-semibold mb-2">{post.title}</p>
-                          <div className="flex items-center gap-3 text-xs text-gray-300">
-                            <span className="flex items-center gap-1"><ThumbsUp size={12} />{post.likes}</span>
-                            <span className="flex items-center gap-1"><MessageCircle size={12} />{post.comments}</span>
-                          </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm">
+                          <ThumbsUp size={14} />
+                          {post.likes}
                         </div>
                       </div>
                     </div>
@@ -322,12 +339,12 @@ export default function ProfilePage() {
 
         {activeTab === 'notifications' && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold">通知 ({unreadCount}件の未読)</h3>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">通知 ({unreadCount}件の未読)</h3>
               {unreadCount > 0 && (
-                <button className="text-purple-400 hover:text-purple-300 transition flex items-center gap-2">
+                <button className="text-purple-400 hover:text-purple-300 transition flex items-center gap-2 text-sm sm:text-base">
                   <Check size={18} />
-                  すべて既読にする
+                  <span className="hidden sm:inline">すべて既読にする</span>
                 </button>
               )}
             </div>
