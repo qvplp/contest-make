@@ -2,35 +2,18 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Bell, Search, LogIn, Menu, X, Home, Trophy, Lightbulb, Image as ImageIcon, PenTool, User, Settings, HelpCircle } from 'lucide-react';
+import { Bell, Search, LogIn, Menu } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
-export default function Header({ onMenuClick }: HeaderProps) {
-  const { isLoggedIn, user } = useAuth();
+export default function Header({ onMenuClick, isMobileMenuOpen = false }: HeaderProps) {
+  const { isLoggedIn } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const unreadNotifications = 3;
-
-  // モックデータ: クレジット情報（実際の実装ではAPIから取得）
-  const credits = 92;
-
-  // メニュー項目（サイドバーと同じ）
-  const menuItems = [
-    { icon: Home, label: 'ホーム', href: '/' },
-    { icon: Trophy, label: 'コンテスト', href: '/contests' },
-    { icon: Lightbulb, label: '攻略・使い方', href: '/guides' },
-    { icon: ImageIcon, label: 'ギャラリー', href: '/gallery' },
-    { icon: PenTool, label: '作成', href: '/create' },
-  ];
-
-  const bottomMenuItems = [
-    { icon: Settings, label: '設定', href: '/settings' },
-    { icon: HelpCircle, label: 'ヘルプ', href: '/help' },
-  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,15 +24,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   const handleMobileMenuToggle = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-    // 既存のonMenuClickも呼び出す（サイドバーとの連携）
     if (onMenuClick) {
       onMenuClick();
     }
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -65,7 +42,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className="lg:hidden p-2 text-gray-400 hover:text-white transition-colors"
                 aria-label="メニューを開く"
               >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                <Menu size={24} />
               </button>
             )}
 
@@ -114,74 +91,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
       </header>
-
-      {/* モバイルメニュー（サイドバーと同じ内容） */}
-      {isLoggedIn && isMobileMenuOpen && (
-        <div className="lg:hidden fixed top-16 left-0 right-0 bg-gray-900 border-b border-gray-800 shadow-lg z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
-          <nav className="py-4">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMobileMenu}
-                  className="flex items-center gap-3 px-6 py-3 hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-                >
-                  <Icon size={20} />
-                  <span className="text-base font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-
-            {/* 区切り線 */}
-            <div className="my-2 mx-6 border-t border-gray-800" />
-
-            {/* ユーザー情報（モバイル） */}
-            {user && (
-              <Link
-                href="/profile"
-                onClick={closeMobileMenu}
-                className="flex items-center gap-3 px-6 py-3 hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-              >
-                <User size={20} />
-                <span className="text-base font-medium">マイページ</span>
-              </Link>
-            )}
-
-            {/* クレジット表示（モバイル） */}
-            {user && (
-              <div className="mx-6 my-3 p-4 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg">
-                <div className="text-xs text-purple-100 mb-1">
-                  クレジット残高
-                </div>
-                <div className="text-3xl font-bold text-white">
-                  {credits}
-                </div>
-              </div>
-            )}
-
-            {/* 区切り線 */}
-            <div className="my-2 mx-6 border-t border-gray-800" />
-
-            {/* ボトムメニュー */}
-            {bottomMenuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMobileMenu}
-                  className="flex items-center gap-3 px-6 py-3 hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"
-                >
-                  <Icon size={20} />
-                  <span className="text-base font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
     </>
   );
 }

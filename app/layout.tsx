@@ -64,7 +64,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <div className="flex-1 lg:ml-64">
                 {/* Header */}
                 <Header
-                  onMenuClick={() => setIsMobileMenuOpen(true)}
+                  onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  isMobileMenuOpen={isMobileMenuOpen}
                 />
 
                 {/* Page Content */}
