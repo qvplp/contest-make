@@ -10,7 +10,7 @@
     "postinstall": "next telemetry disable || true"
   },
   "engines": {
-    "node": ">=20 <23"
+    "node": ">=20"
   },
   "dependencies": {
     "lucide-react": "^0.548.0",
