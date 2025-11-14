@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   ThumbsUp,
   MessageCircle,
@@ -13,11 +14,37 @@ import {
   Tag,
   Copy,
   Check,
+  Link2,
+  Play,
+  Image as ImageIcon,
 } from 'lucide-react';
+
+interface CitedArtwork {
+  id: number;
+  title: string;
+  thumbnail: string;
+  type: 'image' | 'video';
+  author: string;
+  authorId: string;
+  likes: number;
+  views: number;
+}
+
+interface CitedGuide {
+  id: number;
+  title: string;
+  thumbnail: string;
+  author: string;
+  category: string;
+  views: number;
+  likes: number;
+}
 
 export default function GuideDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const guideId = params.id;
+  const { isLoggedIn, user } = useAuth();
 
   const [hasLiked, setHasLiked] = useState(false);
   const [likes, setLikes] = useState(342);
@@ -26,6 +53,10 @@ export default function GuideDetailPage() {
   >([]);
   const [newComment, setNewComment] = useState('');
   const [copiedPrompt, setCopiedPrompt] = useState<number | null>(null);
+  const [citedArtworks, setCitedArtworks] = useState<CitedArtwork[]>([]);
+  const [showAllCitedArtworks, setShowAllCitedArtworks] = useState(false);
+  const [citedGuides, setCitedGuides] = useState<CitedGuide[]>([]);
+  const [showAllCitedGuides, setShowAllCitedGuides] = useState(false);
 
   const guide = {
     id: 1,
@@ -44,6 +75,55 @@ export default function GuideDetailPage() {
         image: '/images/samples/sample1.jpg',
       },
     ],
+  };
+
+  // 引用された作品を読み込む
+  useEffect(() => {
+    const storedCitations = localStorage.getItem(`guide_citations_${guideId}`);
+    if (storedCitations) {
+      try {
+        const citations = JSON.parse(storedCitations);
+        setCitedArtworks(citations);
+      } catch (e) {
+        console.error('Failed to parse citations:', e);
+      }
+    }
+  }, [guideId]);
+
+  // 引用した記事を読み込む
+  useEffect(() => {
+    // 実際の実装では、APIから引用した記事を取得
+    // ここでは、localStorageから取得するか、モックデータを使用
+    // モックデータ：実際の実装では、記事IDから記事情報を取得
+    const mockCitedGuides: CitedGuide[] = [
+      {
+        id: 1,
+        title: 'プロンプトの基本テクニック',
+        thumbnail: '/images/samples/sample1.jpg',
+        author: 'AIマスター',
+        category: 'プロンプト技術',
+        views: 1234,
+        likes: 89,
+      },
+      {
+        id: 2,
+        title: 'アニメーション作成のコツ',
+        thumbnail: '/images/samples/sample2.jpg',
+        author: 'クリエイター',
+        category: 'アニメーション',
+        views: 2345,
+        likes: 156,
+      },
+    ];
+    setCitedGuides(mockCitedGuides);
+  }, [guideId]);
+
+  const handleCiteClick = () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    router.push(`/guides/${guideId}/cite`);
   };
 
   const handleLike = () => {
@@ -125,6 +205,15 @@ export default function GuideDetailPage() {
             <Share2 size={18} />
             シェア
           </button>
+          {isLoggedIn && (
+            <button
+              onClick={handleCiteClick}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition text-white"
+            >
+              <Link2 size={18} />
+              引用する
+            </button>
+          )}
         </div>
 
         <div className="bg-gray-800/50 rounded-xl p-8 mb-8 border border-gray-700">
@@ -227,7 +316,247 @@ export default function GuideDetailPage() {
             ))}
           </div>
         </div>
+
+        {/* 引用された作品セクション */}
+        {citedArtworks.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
+              <Link2 size={28} className="text-purple-400" />
+              引用された作品 ({citedArtworks.length})
+            </h2>
+            
+            {!showAllCitedArtworks ? (
+              <>
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                  {citedArtworks.slice(0, 5).map((artwork) => (
+                    <Link
+                      key={artwork.id}
+                      href={`/contest-posts/${artwork.id}`}
+                      className="flex-shrink-0 w-48 bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
+                    >
+                      <div className="relative aspect-square overflow-hidden bg-gray-800">
+                        <Image
+                          src={artwork.thumbnail}
+                          alt={artwork.title}
+                          fill
+                          sizes="192px"
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                        {artwork.type === 'video' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
+                              <Play className="text-white" fill="white" size={20} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
+                          {artwork.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                          <span>{artwork.author}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp size={12} />
+                            {artwork.likes}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {artwork.views}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {citedArtworks.length > 5 && (
+                  <button
+                    onClick={() => setShowAllCitedArtworks(true)}
+                    className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
+                  >
+                    すべて表示 ({citedArtworks.length}件)
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+                  {citedArtworks.map((artwork) => (
+                    <Link
+                      key={artwork.id}
+                      href={`/contest-posts/${artwork.id}`}
+                      className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
+                    >
+                      <div className="relative aspect-square overflow-hidden bg-gray-800">
+                        <Image
+                          src={artwork.thumbnail}
+                          alt={artwork.title}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                        {artwork.type === 'video' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
+                              <Play className="text-white" fill="white" size={20} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
+                          {artwork.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                          <span>{artwork.author}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp size={12} />
+                            {artwork.likes}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {artwork.views}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowAllCitedArtworks(false)}
+                  className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
+                >
+                  折りたたむ
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 引用した記事セクション */}
+        {citedGuides.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
+              <Link2 size={28} className="text-purple-400" />
+              引用した記事 ({citedGuides.length})
+            </h2>
+            
+            {!showAllCitedGuides ? (
+              <>
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
+                  {citedGuides.slice(0, 5).map((guide) => (
+                    <Link
+                      key={guide.id}
+                      href={`/guides/${guide.id}`}
+                      className="flex-shrink-0 w-48 bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
+                    >
+                      <div className="relative aspect-video overflow-hidden bg-gray-800">
+                        <Image
+                          src={guide.thumbnail}
+                          alt={guide.title}
+                          fill
+                          sizes="192px"
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
+                          {guide.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                          <span>{guide.author}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp size={12} />
+                            {guide.likes}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {guide.views}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {citedGuides.length > 5 && (
+                  <button
+                    onClick={() => setShowAllCitedGuides(true)}
+                    className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
+                  >
+                    すべて表示 ({citedGuides.length}件)
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+                  {citedGuides.map((guide) => (
+                    <Link
+                      key={guide.id}
+                      href={`/guides/${guide.id}`}
+                      className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
+                    >
+                      <div className="relative aspect-video overflow-hidden bg-gray-800">
+                        <Image
+                          src={guide.thumbnail}
+                          alt={guide.title}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
+                          {guide.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                          <span>{guide.author}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp size={12} />
+                            {guide.likes}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {guide.views}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowAllCitedGuides(false)}
+                  className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
+                >
+                  折りたたむ
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

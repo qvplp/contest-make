@@ -15,7 +15,10 @@ import {
   Sparkles,
   Flame,
   Cpu,
+  Trophy,
+  X,
 } from 'lucide-react';
+import { getActiveContests } from '@/types/contests';
 
 type Classification = 'HOT' | 'アニメ' | '漫画' | '実写' | 'カメラワーク' | 'ワークフロー' | 'AIモデル';
 
@@ -47,6 +50,7 @@ interface Guide {
   views: number;
   createdAt: string;
   tags: string[];
+  contestTag?: string; // コンテストタグ（例: "Halloween Creation Cup 2025"）
 }
 
 function GuidesPageContent() {
@@ -56,17 +60,27 @@ function GuidesPageContent() {
   const [sortBy, setSortBy] = useState<'popular' | 'recent'>('popular');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeClassification, setActiveClassification] = useState<Classification | 'all'>('all');
+  const [selectedClassifications, setSelectedClassifications] = useState<(Classification | 'contest')[]>([]);
   const [selectedAIModel, setSelectedAIModel] = useState<AIModel | 'all'>('all');
 
   useEffect(() => {
-    const tab = searchParams.get('tab');
+    const tabs = searchParams.get('tabs');
     const model = searchParams.get('model');
-    if (tab && ['HOT', 'アニメ', '漫画', '実写', 'カメラワーク', 'ワークフロー', 'AIモデル'].includes(tab)) {
-      setActiveClassification(tab as Classification);
-      if (tab === 'AIモデル' && model) {
+    
+    if (tabs) {
+      const tabArray = tabs.split(',').filter((tab) => 
+        ['HOT', 'アニメ', '漫画', '実写', 'カメラワーク', 'ワークフロー', 'AIモデル', 'contest'].includes(tab)
+      ) as (Classification | 'contest')[];
+      setSelectedClassifications(tabArray);
+      
+      if (tabArray.includes('AIモデル') && model) {
         setSelectedAIModel(model as AIModel);
+      } else {
+        setSelectedAIModel('all');
       }
+    } else {
+      setSelectedClassifications([]);
+      setSelectedAIModel('all');
     }
   }, [searchParams]);
 
@@ -87,6 +101,7 @@ function GuidesPageContent() {
       views: 2345,
       createdAt: '2025-10-20T10:00:00Z',
       tags: ['ハロウィン', 'プロンプト', '初心者向け'],
+      contestTag: 'Halloween Creation Cup 2025',
     },
     {
       id: 2,
@@ -245,28 +260,33 @@ function GuidesPageContent() {
     'DALL-E 4',
   ];
 
-  const handleClassificationChange = (classification: Classification | 'all') => {
-    setActiveClassification(classification);
-    if (classification !== 'AIモデル') {
-      setSelectedAIModel('all');
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    if (classification === 'all') {
-      params.delete('tab');
-      params.delete('model');
-    } else {
-      params.set('tab', classification);
-      if (classification !== 'AIモデル') {
+  const handleClassificationToggle = (classification: Classification | 'contest') => {
+    setSelectedClassifications((prev) => {
+      const newSelections = prev.includes(classification)
+        ? prev.filter((c) => c !== classification)
+        : [...prev, classification];
+      
+      // URLパラメータを更新
+      const params = new URLSearchParams(searchParams.toString());
+      if (newSelections.length === 0) {
+        params.delete('tabs');
         params.delete('model');
+      } else {
+        params.set('tabs', newSelections.join(','));
+        if (!newSelections.includes('AIモデル')) {
+          params.delete('model');
+          setSelectedAIModel('all');
+        }
       }
-    }
-    router.push(`/guides?${params.toString()}`, { scroll: false });
+      router.push(`/guides?${params.toString()}`, { scroll: false });
+      
+      return newSelections;
+    });
   };
 
   const handleAIModelChange = (model: AIModel | 'all') => {
     setSelectedAIModel(model);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('tab', 'AIモデル');
     if (model === 'all') {
       params.delete('model');
     } else {
@@ -275,38 +295,110 @@ function GuidesPageContent() {
     router.push(`/guides?${params.toString()}`, { scroll: false });
   };
 
-  const sortedGuides = [...guides].sort((a, b) => {
-    if (sortBy === 'popular') {
-      return b.likes - a.likes;
-    } else {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }
-  });
-
-  const filteredGuides = sortedGuides.filter((guide) => {
-    let classificationMatch = true;
-    if (activeClassification === 'HOT') {
-      classificationMatch = guide.isHot;
-    } else if (activeClassification === 'AIモデル') {
-      classificationMatch = guide.classifications.includes('AIモデル');
-      if (selectedAIModel !== 'all') {
-        classificationMatch = classificationMatch && guide.aiModels.includes(selectedAIModel);
+  // 記事が選択された分類にどれだけマッチしているかを計算
+  const getMatchCount = (guide: Guide): number => {
+    if (selectedClassifications.length === 0) return 0;
+    
+    let matchCount = 0;
+    
+    for (const classification of selectedClassifications) {
+      if (classification === 'contest') {
+        // コンテストタブが選択されている場合
+        const activeContests = getActiveContests();
+        const activeContestDisplayNames = activeContests.map((c) => c.displayName);
+        if (guide.contestTag && activeContestDisplayNames.includes(guide.contestTag)) {
+          matchCount++;
+        }
+      } else if (classification === 'HOT') {
+        if (guide.isHot) {
+          matchCount++;
+        }
+      } else if (classification === 'AIモデル') {
+        if (guide.classifications.includes('AIモデル')) {
+          matchCount++;
+        }
+      } else {
+        if (guide.classifications.includes(classification)) {
+          matchCount++;
+        }
       }
-    } else if (activeClassification !== 'all') {
-      classificationMatch = guide.classifications.includes(activeClassification);
     }
+    
+    return matchCount;
+  };
 
-    const categoryMatch = selectedCategory === 'all' || guide.category === selectedCategory;
+  // フィルタリングとソート
+  const filteredAndSortedGuides = [...guides]
+    .filter((guide) => {
+      // 分類が選択されていない場合はすべて表示
+      if (selectedClassifications.length === 0) {
+        const categoryMatch = selectedCategory === 'all' || guide.category === selectedCategory;
+        const searchMatch =
+          searchQuery === '' ||
+          guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          guide.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          guide.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          guide.aiModels.some((m) => m.toLowerCase().includes(searchQuery.toLowerCase()));
+        return categoryMatch && searchMatch;
+      }
 
-    const searchMatch =
-      searchQuery === '' ||
-      guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guide.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      guide.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      guide.aiModels.some((m) => m.toLowerCase().includes(searchQuery.toLowerCase()));
+      // OR条件でフィルタリング（選択された分類のいずれかを含む）
+      let classificationMatch = false;
+      
+      for (const classification of selectedClassifications) {
+        if (classification === 'contest') {
+          const activeContests = getActiveContests();
+          const activeContestDisplayNames = activeContests.map((c) => c.displayName);
+          if (guide.contestTag && activeContestDisplayNames.includes(guide.contestTag)) {
+            classificationMatch = true;
+            break;
+          }
+        } else if (classification === 'HOT') {
+          if (guide.isHot) {
+            classificationMatch = true;
+            break;
+          }
+        } else if (classification === 'AIモデル') {
+          if (guide.classifications.includes('AIモデル')) {
+            if (selectedAIModel === 'all' || guide.aiModels.includes(selectedAIModel)) {
+              classificationMatch = true;
+              break;
+            }
+          }
+        } else {
+          if (guide.classifications.includes(classification)) {
+            classificationMatch = true;
+            break;
+          }
+        }
+      }
 
-    return classificationMatch && categoryMatch && searchMatch;
-  });
+      if (!classificationMatch) return false;
+
+      const categoryMatch = selectedCategory === 'all' || guide.category === selectedCategory;
+
+      const searchMatch =
+        searchQuery === '' ||
+        guide.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        guide.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        guide.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        guide.aiModels.some((m) => m.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return categoryMatch && searchMatch;
+    })
+    .map((guide) => ({
+      ...guide,
+      matchCount: getMatchCount(guide),
+    }))
+    .sort((a, b) => {
+      // マッチ数が多い順
+      if (b.matchCount !== a.matchCount) {
+        return b.matchCount - a.matchCount;
+      }
+      // マッチ数が同じ場合はいいね数でソート
+      return b.likes - a.likes;
+    })
+    .map(({ matchCount, ...guide }) => guide); // matchCountを削除
 
   return (
     <div className="bg-gray-950 min-h-screen">
@@ -330,33 +422,111 @@ function GuidesPageContent() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {classificationTabs.map((tab) => {
-              const isActive = activeClassification === tab.value;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.value}
-                  onClick={() => handleClassificationChange(tab.value)}
-                  className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-2 ${
-                    isActive
-                      ? tab.value === 'HOT'
-                        ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/50'
-                        : tab.value === 'AIモデル'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50'
-                        : 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                  }`}
-                >
-                  {Icon && (
-                    <Icon size={18} className={isActive && tab.value === 'HOT' ? 'animate-pulse' : ''} />
-                  )}
-                  {tab.label}
-                </button>
-              );
-            })}
+            {/* すべてタブ - 選択をクリア */}
+            <button
+              onClick={() => {
+                setSelectedClassifications([]);
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('tabs');
+                params.delete('model');
+                router.push(`/guides?${params.toString()}`, { scroll: false });
+              }}
+              className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition ${
+                selectedClassifications.length === 0
+                  ? 'bg-purple-600 text-white shadow-lg'
+                  : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+              }`}
+            >
+              すべて
+            </button>
+            
+            {/* 分類タブ - 複数選択可能 */}
+            {classificationTabs
+              .filter((tab) => tab.value !== 'all')
+              .map((tab) => {
+                const isSelected = selectedClassifications.includes(tab.value as Classification);
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => handleClassificationToggle(tab.value as Classification)}
+                    className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-2 ${
+                      isSelected
+                        ? tab.value === 'HOT'
+                          ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/50'
+                          : tab.value === 'AIモデル'
+                          ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50'
+                          : 'bg-purple-600 text-white shadow-lg'
+                        : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                    }`}
+                  >
+                    {Icon && (
+                      <Icon size={18} className={isSelected && tab.value === 'HOT' ? 'animate-pulse' : ''} />
+                    )}
+                    {tab.label}
+                    {isSelected && (
+                      <span className="ml-1 text-xs opacity-75">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            
+            {/* コンテストタブ - 開催中のコンテストがある場合のみ表示 */}
+            {getActiveContests().length > 0 && (
+              <button
+                onClick={() => handleClassificationToggle('contest')}
+                className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-2 ${
+                  selectedClassifications.includes('contest')
+                    ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-500/50'
+                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                }`}
+              >
+                <Trophy size={18} />
+                コンテスト
+                {selectedClassifications.includes('contest') && (
+                  <span className="ml-1 text-xs opacity-75">✓</span>
+                )}
+              </button>
+            )}
           </div>
+          
+          {/* 選択された分類の表示 */}
+          {selectedClassifications.length > 0 && (
+            <div className="mt-4 bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-lg p-4 border border-purple-700/50">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-semibold text-purple-400">選択中:</span>
+                {selectedClassifications.map((classification) => {
+                  const tab = classificationTabs.find((t) => t.value === classification) || 
+                    (classification === 'contest' ? { label: 'コンテスト', icon: Trophy } : null);
+                  if (!tab) return null;
+                  const Icon = tab.icon;
+                  return (
+                    <span
+                      key={classification}
+                      className="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    >
+                      {Icon && <Icon size={14} />}
+                      {tab.label}
+                    </span>
+                  );
+                })}
+                <button
+                  onClick={() => {
+                    setSelectedClassifications([]);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('tabs');
+                    params.delete('model');
+                    router.push(`/guides?${params.toString()}`, { scroll: false });
+                  }}
+                  className="ml-auto text-gray-400 hover:text-white transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          )}
 
-          {activeClassification === 'AIモデル' && (
+          {selectedClassifications.includes('AIモデル') && (
             <div className="mt-4 bg-gray-800/50 rounded-lg p-4 border border-gray-700">
               <div className="flex items-center gap-3 mb-3">
                 <Cpu size={20} className="text-cyan-400" />
@@ -440,7 +610,7 @@ function GuidesPageContent() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {filteredGuides.map((guide) => (
+          {filteredAndSortedGuides.map((guide) => (
             <Link
               key={guide.id}
               href={`/guides/${guide.id}`}
@@ -525,7 +695,7 @@ function GuidesPageContent() {
           ))}
         </div>
 
-        {filteredGuides.length === 0 && (
+        {filteredAndSortedGuides.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-400 text-lg mb-2">該当する記事がありません</p>
             <p className="text-gray-500 text-sm">別の分類やカテゴリーを試してみてください</p>

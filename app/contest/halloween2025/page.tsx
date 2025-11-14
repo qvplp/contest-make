@@ -14,6 +14,8 @@ import {
   Upload,
   Clock,
 } from 'lucide-react';
+import ContestGuidesViewer from '@/components/ContestGuidesViewer';
+import { getContestBySlug } from '@/types/contests';
 
 export default function HalloweenContestPage() {
   const { isLoggedIn } = useAuth();
@@ -71,6 +73,52 @@ export default function HalloweenContestPage() {
     { id: 4, imageUrl: '/images/samples/sample5.jpg', title: '満月の海賊船' },
     { id: 5, imageUrl: '/images/samples/sample7.jpg', title: 'スチームパンクハロウィン' },
     { id: 6, imageUrl: '/images/samples/sample8.jpg', title: 'ダンスパーティー' },
+  ];
+
+  // コンテスト情報を取得
+  const contestInfo = getContestBySlug('halloween2025');
+
+  // このコンテストに関連する攻略記事（モック）
+  const relatedGuides = [
+    {
+      id: 1,
+      title: 'ハロウィン雰囲気を出すプロンプトテクニック10選',
+      author: 'AIマスター',
+      authorAvatar: '/images/avatars/user1.jpg',
+      thumbnail: '/images/samples/sample1.jpg',
+      excerpt: '不気味で幻想的なハロウィンの雰囲気を作り出すためのプロンプトのコツを解説します。',
+      category: 'プロンプト技術',
+      likes: 342,
+      comments: 45,
+      views: 2345,
+      createdAt: '2025-10-20T10:00:00Z',
+    },
+    {
+      id: 2,
+      title: 'Seedreamで幽霊を描く方法',
+      author: 'クリエイター123',
+      authorAvatar: '/images/avatars/user2.jpg',
+      thumbnail: '/images/samples/sample2.jpg',
+      excerpt: 'Seedreamを使って透明感のある幽霊キャラクターを作成する手法を紹介します。',
+      category: 'モデル別攻略',
+      likes: 278,
+      comments: 32,
+      views: 1876,
+      createdAt: '2025-10-19T14:30:00Z',
+    },
+    {
+      id: 5,
+      title: 'かぼちゃのランタンを美しく描くコツ',
+      author: 'パンプキンマスター',
+      authorAvatar: '/images/avatars/user5.jpg',
+      thumbnail: '/images/samples/sample2.jpg',
+      excerpt: '定番のハロウィンアイテム、かぼちゃのランタンをリアルかつ魅力的に描く方法。',
+      category: 'オブジェクト制作',
+      likes: 134,
+      comments: 15,
+      views: 987,
+      createdAt: '2025-10-16T11:20:00Z',
+    },
   ];
 
   return (
@@ -251,6 +299,15 @@ export default function HalloweenContestPage() {
           </ul>
         </div>
       </section>
+
+      {/* 関連する攻略記事 */}
+      {contestInfo && (
+        <ContestGuidesViewer
+          guides={relatedGuides}
+          contestSlug={contestInfo.slug}
+          contestDisplayName={contestInfo.displayName}
+        />
+      )}
 
       {/* 応募中の作品グリッド */}
       <section className="container mx-auto px-4 sm:px-6 py-8 sm:py-16 bg-gradient-to-b from-transparent to-gray-900/50">
