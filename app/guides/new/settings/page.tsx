@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
@@ -26,7 +26,7 @@ import {
   SettingsFormData,
 } from '@/types/guideForm';
 
-export default function GuideSettingsPage() {
+function GuideSettingsContent() {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -462,6 +462,25 @@ export default function GuideSettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GuideSettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-gray-950 min-h-screen py-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-400">読み込み中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <GuideSettingsContent />
+    </Suspense>
   );
 }
 

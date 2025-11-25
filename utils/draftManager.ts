@@ -38,6 +38,8 @@ const MAX_HISTORY = 5;
  * 下書きを保存（localStorage）
  */
 export function saveDraft(articleId: string, draft: Omit<ArticleDraft, 'id' | 'version'>): void {
+  if (typeof window === 'undefined') return; // SSR対応
+  
   try {
     const existing = getDraft(articleId);
     const version = existing ? existing.version + 1 : 1;
@@ -62,6 +64,8 @@ export function saveDraft(articleId: string, draft: Omit<ArticleDraft, 'id' | 'v
  * 下書きを取得
  */
 export function getDraft(articleId: string): ArticleDraft | null {
+  if (typeof window === 'undefined') return null; // SSR対応
+  
   try {
     const stored = localStorage.getItem(`${DRAFT_PREFIX}${articleId}`);
     if (!stored) return null;
@@ -76,6 +80,8 @@ export function getDraft(articleId: string): ArticleDraft | null {
  * 下書きを削除
  */
 export function deleteDraft(articleId: string): void {
+  if (typeof window === 'undefined') return; // SSR対応
+  
   localStorage.removeItem(`${DRAFT_PREFIX}${articleId}`);
   localStorage.removeItem(`${HISTORY_PREFIX}${articleId}`);
 }
@@ -84,6 +90,8 @@ export function deleteDraft(articleId: string): void {
  * 下書き履歴を保存
  */
 function saveDraftHistory(articleId: string, draft: ArticleDraft): void {
+  if (typeof window === 'undefined') return; // SSR対応
+  
   try {
     const histories = getDraftHistories(articleId);
     const newHistory: DraftHistory = {
@@ -106,6 +114,8 @@ function saveDraftHistory(articleId: string, draft: ArticleDraft): void {
  * 下書き履歴を取得
  */
 export function getDraftHistories(articleId: string): DraftHistory[] {
+  if (typeof window === 'undefined') return []; // SSR対応
+  
   try {
     const stored = localStorage.getItem(`${HISTORY_PREFIX}${articleId}`);
     if (!stored) return [];
@@ -206,6 +216,8 @@ export interface ArticleSettings {
  * 記事設定を保存
  */
 export function saveArticleSettings(articleId: string, settings: ArticleSettings): void {
+  if (typeof window === 'undefined') return; // SSR対応
+  
   try {
     localStorage.setItem(`${SETTINGS_PREFIX}${articleId}`, JSON.stringify(settings));
   } catch (error) {
@@ -218,6 +230,8 @@ export function saveArticleSettings(articleId: string, settings: ArticleSettings
  * 記事設定を取得
  */
 export function getArticleSettings(articleId: string): ArticleSettings | null {
+  if (typeof window === 'undefined') return null; // SSR対応
+  
   try {
     const stored = localStorage.getItem(`${SETTINGS_PREFIX}${articleId}`);
     if (!stored) return null;
@@ -232,6 +246,8 @@ export function getArticleSettings(articleId: string): ArticleSettings | null {
  * 記事設定を削除
  */
 export function deleteArticleSettings(articleId: string): void {
+  if (typeof window === 'undefined') return; // SSR対応
+  
   localStorage.removeItem(`${SETTINGS_PREFIX}${articleId}`);
 }
 
