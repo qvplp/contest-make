@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { markdownToHtml, generateToc } from '@/utils/markdown';
-import { Hash } from 'lucide-react';
+import { markdownToHtml } from '@/utils/markdown';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-javascript';
@@ -22,7 +21,6 @@ interface MarkdownPreviewProps {
 
 export default function MarkdownPreview({ markdown, className = '' }: MarkdownPreviewProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const toc = generateToc(markdown);
 
   // コードハイライトの適用
   useEffect(() => {
@@ -40,28 +38,6 @@ export default function MarkdownPreview({ markdown, className = '' }: MarkdownPr
 
   return (
     <div className={`h-full overflow-y-auto ${className}`}>
-      {toc.length > 0 && (
-        <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="flex items-center gap-2 mb-3">
-            <Hash size={16} className="text-purple-400" />
-            <h3 className="font-semibold text-sm text-gray-300">目次</h3>
-          </div>
-          <nav className="space-y-1">
-            {toc.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                className={`block text-sm text-gray-400 hover:text-purple-400 transition ${
-                  item.level === 1 ? 'pl-0 font-semibold' : item.level === 2 ? 'pl-4' : 'pl-8'
-                }`}
-              >
-                {item.text}
-              </a>
-            ))}
-          </nav>
-        </div>
-      )}
-
       <div
         ref={contentRef}
         className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-300 prose-a:text-purple-400 prose-strong:text-white prose-code:text-purple-300 prose-pre:bg-gray-900 prose-blockquote:text-gray-400 prose-blockquote:border-purple-600"

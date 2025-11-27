@@ -12,29 +12,62 @@ marked.setOptions({
 });
 
 // カスタムレンダラーを設定
+// 型定義との齟齬を避けるため any ベースでカスタムレンダラーを登録
 marked.use({
   renderer: {
-    code(code: string, language?: string) {
+    code(this: any, code: any, language?: string) {
       const lang = language || 'text';
-      const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      // code が string 以外（オブジェクトなど）の場合にも安全に扱う
+      let codeStr: string;
+      if (typeof code === 'string') {
+        codeStr = code;
+      } else if (Array.isArray(code)) {
+        codeStr = code.join('\n');
+      } else if (code && typeof code.text === 'string') {
+        codeStr = code.text;
+      } else if (code && typeof code.raw === 'string') {
+        codeStr = code.raw;
+      } else {
+        codeStr = String(code ?? '');
+      }
+
+      const escapedCode = codeStr.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       return `<pre class="bg-gray-900 rounded-lg p-4 overflow-x-auto"><code class="language-${lang}">${escapedCode}</code></pre>`;
     },
-    heading(text: string, level: number) {
-      const id = text
+    heading(this: any, text: any, level: number) {
+      let textStr: string;
+      if (typeof text === 'string') {
+        textStr = text;
+      } else if (Array.isArray(text)) {
+        textStr = text.join(' ');
+      } else if (text && typeof text.text === 'string') {
+        textStr = text.text;
+      } else {
+        textStr = String(text ?? '');
+      }
+
+      const id = textStr
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-');
-      return `<h${level} id="${id}" class="scroll-mt-20">${text}</h${level}>`;
+
+      return `<h${level} id="${id}" class="scroll-mt-20">${textStr}</h${level}>`;
     },
-  },
+  } as any,
 });
 
 /**
  * MarkdownをHTMLに変換（サニタイズ済み）
  */
 export function markdownToHtml(markdown: string): string {
-  const html = marked.parse(markdown) as string;
+  // Blockエディタ由来のエスケープ（\#, \*, \_ など）を軽く正規化してからパースする
+  const normalized = markdown
+    .replace(/\r\n/g, '\n')
+    .replace(/\\([#*_`])/g, '$1');
+
+  const html = marked.parse(normalized) as string;
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'p',

@@ -1,165 +1,205 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   ThumbsUp,
   MessageCircle,
   Share2,
-  Eye,
-  Calendar,
-  Tag,
-  Copy,
-  Check,
   Link2,
-  Play,
-  Image as ImageIcon,
+  Calendar,
+  Eye,
+  Tag,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import dynamic from 'next/dynamic';
 
-interface CitedArtwork {
-  id: number;
-  title: string;
-  thumbnail: string;
-  type: 'image' | 'video';
-  author: string;
-  authorId: string;
-  likes: number;
-  views: number;
-}
+const BlockEditor = dynamic(() => import('@/components/editor/BlockEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="animate-pulse">
+      <div className="h-4 bg-gray-700 rounded w-3/4 mb-3"></div>
+      <div className="h-4 bg-gray-700 rounded w-1/2 mb-3"></div>
+      <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+    </div>
+  ),
+});
 
-interface CitedGuide {
-  id: number;
+interface Guide {
+  id: string;
   title: string;
-  thumbnail: string;
   author: string;
+  authorAvatar: string;
+  thumbnail: string;
+  excerpt: string;
+  content: string;
   category: string;
-  views: number;
+  classifications: string[];
+  aiModels: string[];
+  tags: string[];
   likes: number;
+  comments: number;
+  views: number;
+  createdAt: string;
+  citedGuides?: { id: string; title?: string; thumbnail?: string }[];
 }
+
+const mockGuide: Guide = {
+  id: '1',
+  title: '生成画像の季節ごとの色味分けについて',
+  author: '@ai_master',
+  authorAvatar: '/images/avatars/default.png',
+  thumbnail: '/images/samples/guide-sample.jpg',
+  excerpt:
+    '生成AIで画像を作る際、季節ごとに色味を意識して分けると、同じテーマでも世界観の一貫性が生まれる。',
+  content: `## はじめに
+
+生成AIで画像を作る際、季節ごとに色味を意識して分けると、同じテーマでも世界観の一貫性が生まれ、ブランドや作品シリーズとしての印象が強まる。
+
+## 春・夏の色味設計
+
+春は淡いパステル、明るめのグリーンやピンクを中心に、コントラスト弱めで「ふんわり」。夏はビビッドなブルー、シアン、強めのハイライトで「澄んだ空気感」を出すと季節感が伝わりやすい。
+
+### 春のプロンプト例
+
+\`\`\`
+soft pastel colors, gentle spring lighting, 
+cherry blossoms, warm atmosphere
+\`\`\`
+
+### 夏のプロンプト例
+
+\`\`\`
+vivid blue sky, bright summer light, 
+high contrast, clear atmosphere
+\`\`\`
+
+## 秋・冬の色味設計
+
+秋はオレンジ、ブラウン、深いレッドなど暖色寄りにし、彩度を少し落としてノスタルジックに。冬はブルーグレー、白、シルバーを軸にコントラスト高め、影を冷たい色に振ると「ひんやり」した印象になる。
+
+## ワークフローへの落とし込み
+
+季節ごとに「パレット例」と「NG例」を決めておき、プロンプトに色や雰囲気のキーワードを必ず1〜2個入れる。生成後もホワイトバランスと彩度を微調整し、同じ季節の画像を横に並べて最終確認すると、シリーズとしての統一感が高まる。
+
+---
+
+> **ポイント**: 季節感を出すには、光の色温度も重要。春夏は暖かく、秋冬は冷たくするとより効果的。
+`,
+  category: 'プロンプト技術',
+  classifications: ['アニメ', 'ワークフロー'],
+  aiModels: ['Midjourney v7', 'Seedream'],
+  tags: ['色彩', '季節', 'プロンプト'],
+  likes: 234,
+  comments: 45,
+  views: 1234,
+  createdAt: '2025-01-15T10:00:00Z',
+  citedGuides: [
+    { id: 'guide-001', title: '基本的なプロンプトの書き方' },
+    { id: 'guide-002', title: 'Midjourneyスタイルガイド' },
+  ],
+};
 
 export default function GuideDetailPage() {
   const params = useParams();
-  const router = useRouter();
-  const guideId = params.id;
+  const guideId = params.id as string;
   const { isLoggedIn, user } = useAuth();
 
-  const [hasLiked, setHasLiked] = useState(false);
-  const [likes, setLikes] = useState(342);
+  const [guide, setGuide] = useState<Guide | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState<
-    Array<{ id: number; author: string; text: string; date: string }>
+    { id: string; author: string; text: string; createdAt: string }[]
   >([]);
   const [newComment, setNewComment] = useState('');
-  const [copiedPrompt, setCopiedPrompt] = useState<number | null>(null);
-  const [citedArtworks, setCitedArtworks] = useState<CitedArtwork[]>([]);
-  const [showAllCitedArtworks, setShowAllCitedArtworks] = useState(false);
-  const [citedGuides, setCitedGuides] = useState<CitedGuide[]>([]);
-  const [showAllCitedGuides, setShowAllCitedGuides] = useState(false);
+  const [citations, setCitations] = useState<any[]>([]);
 
-  const guide = {
-    id: 1,
-    title: 'ハロウィン雰囲気を出すプロンプトテクニック10選',
-    author: 'AIマスター',
-    category: 'プロンプト技術',
-    tags: ['ハロウィン', 'プロンプト', '初心者向け'],
-    views: 2345,
-    createdAt: '2025-10-20T10:00:00Z',
-    content: `ハロウィンの雰囲気を醸し出す作品を作るには、プロンプトの選び方が重要です。`,
-    prompts: [
-      {
-        id: 1,
-        title: '基本のハロウィンシーン',
-        text: 'Halloween night scene, full moon, pumpkins with glowing faces, spooky atmosphere',
-        image: '/images/samples/sample1.jpg',
-      },
-    ],
-  };
-
-  // 引用された作品を読み込む
   useEffect(() => {
-    const storedCitations = localStorage.getItem(`guide_citations_${guideId}`);
-    if (storedCitations) {
+    // 実際は API から guideId ごとの記事を取得する想定
+    setGuide(mockGuide);
+    setLikeCount(mockGuide.likes);
+
+    const key = `guide_citations_${guideId}`;
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    if (saved) {
       try {
-        const citations = JSON.parse(storedCitations);
-        setCitedArtworks(citations);
+        setCitations(JSON.parse(saved));
       } catch (e) {
         console.error('Failed to parse citations:', e);
       }
     }
   }, [guideId]);
 
-  // 引用した記事を読み込む
-  useEffect(() => {
-    // 実際の実装では、APIから引用した記事を取得
-    // ここでは、localStorageから取得するか、モックデータを使用
-    // モックデータ：実際の実装では、記事IDから記事情報を取得
-    const mockCitedGuides: CitedGuide[] = [
-      {
-        id: 1,
-        title: 'プロンプトの基本テクニック',
-        thumbnail: '/images/samples/sample1.jpg',
-        author: 'AIマスター',
-        category: 'プロンプト技術',
-        views: 1234,
-        likes: 89,
-      },
-      {
-        id: 2,
-        title: 'アニメーション作成のコツ',
-        thumbnail: '/images/samples/sample2.jpg',
-        author: 'クリエイター',
-        category: 'アニメーション',
-        views: 2345,
-        likes: 156,
-      },
-    ];
-    setCitedGuides(mockCitedGuides);
-  }, [guideId]);
-
-  const handleCiteClick = () => {
-    if (!isLoggedIn) {
-      router.push('/login');
-      return;
-    }
-    router.push(`/guides/${guideId}/cite`);
+  const handleLike = () => {
+    setIsLiked((prev) => !prev);
+    setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
   };
 
-  const handleLike = () => {
-    setHasLiked(!hasLiked);
-    setLikes(hasLiked ? likes - 1 : likes + 1);
+  const handleShare = async () => {
+    try {
+      await navigator.share({
+        title: guide?.title,
+        url: window.location.href,
+      });
+    } catch {
+      navigator.clipboard.writeText(window.location.href);
+      alert('URLをコピーしました');
+    }
   };
 
   const handleComment = () => {
-    if (newComment.trim()) {
-      setComments([
-        ...comments,
-        {
-          id: comments.length + 1,
-          author: 'あなた',
-          text: newComment,
-          date: new Date().toISOString(),
-        },
-      ]);
-      setNewComment('');
-    }
+    if (!newComment.trim() || !user) return;
+
+    const comment = {
+      id: `comment_${Date.now()}`,
+      author: user.name || 'ユーザー',
+      text: newComment,
+      createdAt: new Date().toISOString(),
+    };
+
+    setComments((prev) => [...prev, comment]);
+    setNewComment('');
   };
 
-  const copyPrompt = (promptId: number, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedPrompt(promptId);
-    setTimeout(() => setCopiedPrompt(null), 2000);
-  };
+  if (!guide) {
+    return (
+      <div className="bg-gray-950 min-h-screen py-8">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-400">読み込み中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-950 min-h-screen py-8">
-      <div className="container mx-auto px-6 max-w-5xl">
-        <div className="mb-8">
+      <div className="container mx-auto px-6 max-w-4xl">
+        <Link
+          href="/guides"
+          className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition mb-6"
+        >
+          <Link2 size={20} />
+          攻略一覧に戻る
+        </Link>
+
+        <div className="mb-6">
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
               {guide.category}
             </span>
+            {guide.classifications.map((c) => (
+              <span
+                key={c}
+                className="bg-blue-600/50 text-blue-200 px-3 py-1 rounded-full text-sm"
+              >
+                {c}
+              </span>
+            ))}
             {guide.tags.map((tag) => (
               <span
                 key={tag}
@@ -184,380 +224,158 @@ export default function GuideDetailPage() {
             </div>
             <div className="flex items-center gap-1">
               <Eye size={16} />
-              {guide.views}
+              {guide.views.toLocaleString()}
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-xl p-4 mb-8 border border-gray-700 flex flex-wrap gap-3">
+        <div className="mb-8">
+          <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-800 bg-gray-900">
+            <Image
+              src={guide.thumbnail}
+              alt={guide.title}
+              fill
+              className="object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-800">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-              hasLiked
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+              isLiked
                 ? 'bg-purple-600 text-white'
-                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            <ThumbsUp size={18} fill={hasLiked ? 'currentColor' : 'none'} />
-            いいね {likes}
+            <ThumbsUp size={20} className={isLiked ? 'fill-current' : ''} />
+            <span>{likeCount}</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition">
-            <Share2 size={18} />
+
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition"
+          >
+            <Share2 size={20} />
             シェア
           </button>
+
           {isLoggedIn && (
-            <button
-              onClick={handleCiteClick}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition text-white"
+            <Link
+              href={`/guides/${guideId}/cite`}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition ml-auto"
             >
-              <Link2 size={18} />
+              <Link2 size={20} />
               引用する
-            </button>
+            </Link>
           )}
         </div>
 
-        <div className="bg-gray-800/50 rounded-xl p-8 mb-8 border border-gray-700">
-          <div className="prose prose-invert max-w-none">
-            <p className="text-gray-300 mb-4 leading-relaxed">
-              {guide.content}
-            </p>
-          </div>
+        <div className="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700">
+          <p className="text-gray-300 leading-relaxed text-lg">{guide.excerpt}</p>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-6">プロンプト例</h2>
-          <div className="space-y-6">
-            {guide.prompts.map((prompt) => (
-              <div
-                key={prompt.id}
-                className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700"
-              >
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="aspect-square relative">
-                    <Image
-                      src={prompt.image}
-                      alt={prompt.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-6 flex flex-col">
-                    <h3 className="font-bold text-xl mb-3">{prompt.title}</h3>
-                    <div className="bg-gray-900 rounded-lg p-4 mb-4 flex-1 relative">
-                      <code className="text-sm text-gray-300 block">
-                        {prompt.text}
-                      </code>
-                      <button
-                        onClick={() => copyPrompt(prompt.id, prompt.text)}
-                        className="absolute top-2 right-2 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
-                      >
-                        {copiedPrompt === prompt.id ? (
-                          <Check size={16} className="text-green-400" />
-                        ) : (
-                          <Copy size={16} />
-                        )}
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => copyPrompt(prompt.id, prompt.text)}
-                      className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2"
-                    >
-                      <Copy size={16} />
-                      プロンプトをコピー
-                    </button>
+        <article className="bg-gray-800/40 rounded-xl p-8 border border-gray-700 mb-8">
+          <BlockEditor initialContent={guide.content} editable={false} />
+        </article>
+
+        {guide.citedGuides && guide.citedGuides.length > 0 && (
+          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mb-8">
+            <h3 className="text-lg font-semibold mb-4">📚 引用した記事</h3>
+            <div className="space-y-3">
+              {guide.citedGuides.map((cited) => (
+                <Link
+                  key={cited.id}
+                  href={`/guides/${cited.id}`}
+                  className="block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-purple-500 transition"
+                >
+                  <p className="text-gray-300">{cited.title || cited.id}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {citations.length > 0 && (
+          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mb-8">
+            <h3 className="text-lg font-semibold mb-4">🎨 この記事を参考にした作品</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {citations.map((citation) => (
+                <div
+                  key={citation.id}
+                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-800"
+                >
+                  <Image
+                    src={citation.thumbnail}
+                    alt={citation.title}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="text-sm font-medium truncate">{citation.title}</p>
+                    <p className="text-xs text-gray-400">{citation.author}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-            <MessageCircle />
-            コメント ({comments.length})
-          </h2>
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <MessageCircle size={20} />
+            コメント ({guide.comments + comments.length})
+          </h3>
 
-          <div className="bg-gray-800/50 rounded-xl p-6 mb-6 border border-gray-700">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="コメントを書く..."
-              rows={4}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none mb-4"
-            />
-            <button
-              onClick={handleComment}
-              className="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition"
-            >
-              コメントする
-            </button>
-          </div>
+          {isLoggedIn ? (
+            <div className="mb-6">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="コメントを入力..."
+                rows={3}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg 
+                         text-white placeholder-gray-500 resize-none mb-3
+                         focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+              <button
+                onClick={handleComment}
+                disabled={!newComment.trim()}
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                コメントする
+              </button>
+            </div>
+          ) : (
+            <p className="text-gray-400 mb-6">
+              コメントするには
+              <Link href="/login" className="text-purple-400 hover:underline mx-1">
+                ログイン
+              </Link>
+              してください
+            </p>
+          )}
 
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="bg-gray-800/50 rounded-xl p-6 border border-gray-700"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-semibold">{comment.author}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(comment.date).toLocaleDateString('ja-JP')}
-                      </span>
-                    </div>
-                    <p className="text-gray-300">{comment.text}</p>
-                  </div>
+              <div key={comment.id} className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
+                  <span className="text-sm font-medium">{comment.author}</span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(comment.createdAt).toLocaleDateString('ja-JP')}
+                  </span>
                 </div>
+                <p className="text-gray-300">{comment.text}</p>
               </div>
             ))}
           </div>
         </div>
-
-        {/* 引用された作品セクション */}
-        {citedArtworks.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-              <Link2 size={28} className="text-purple-400" />
-              引用された作品 ({citedArtworks.length})
-            </h2>
-            
-            {!showAllCitedArtworks ? (
-              <>
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
-                  {citedArtworks.slice(0, 5).map((artwork) => (
-                    <Link
-                      key={artwork.id}
-                      href={`/contest-posts/${artwork.id}`}
-                      className="flex-shrink-0 w-48 bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
-                    >
-                      <div className="relative aspect-square overflow-hidden bg-gray-800">
-                        <Image
-                          src={artwork.thumbnail}
-                          alt={artwork.title}
-                          fill
-                          sizes="192px"
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                        {artwork.type === 'video' && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
-                              <Play className="text-white" fill="white" size={20} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
-                          {artwork.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
-                          <span>{artwork.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp size={12} />
-                            {artwork.likes}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Eye size={12} />
-                            {artwork.views}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                {citedArtworks.length > 5 && (
-                  <button
-                    onClick={() => setShowAllCitedArtworks(true)}
-                    className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
-                  >
-                    すべて表示 ({citedArtworks.length}件)
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
-                  {citedArtworks.map((artwork) => (
-                    <Link
-                      key={artwork.id}
-                      href={`/contest-posts/${artwork.id}`}
-                      className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
-                    >
-                      <div className="relative aspect-square overflow-hidden bg-gray-800">
-                        <Image
-                          src={artwork.thumbnail}
-                          alt={artwork.title}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                        {artwork.type === 'video' && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
-                              <Play className="text-white" fill="white" size={20} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
-                          {artwork.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
-                          <span>{artwork.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp size={12} />
-                            {artwork.likes}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Eye size={12} />
-                            {artwork.views}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setShowAllCitedArtworks(false)}
-                  className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
-                >
-                  折りたたむ
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* 引用した記事セクション */}
-        {citedGuides.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
-              <Link2 size={28} className="text-purple-400" />
-              引用した記事 ({citedGuides.length})
-            </h2>
-            
-            {!showAllCitedGuides ? (
-              <>
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4">
-                  {citedGuides.slice(0, 5).map((guide) => (
-                    <Link
-                      key={guide.id}
-                      href={`/guides/${guide.id}`}
-                      className="flex-shrink-0 w-48 bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
-                    >
-                      <div className="relative aspect-video overflow-hidden bg-gray-800">
-                        <Image
-                          src={guide.thumbnail}
-                          alt={guide.title}
-                          fill
-                          sizes="192px"
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
-                          {guide.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
-                          <span>{guide.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp size={12} />
-                            {guide.likes}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Eye size={12} />
-                            {guide.views}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                {citedGuides.length > 5 && (
-                  <button
-                    onClick={() => setShowAllCitedGuides(true)}
-                    className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
-                  >
-                    すべて表示 ({citedGuides.length}件)
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
-                  {citedGuides.map((guide) => (
-                    <Link
-                      key={guide.id}
-                      href={`/guides/${guide.id}`}
-                      className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-600 transition group"
-                    >
-                      <div className="relative aspect-video overflow-hidden bg-gray-800">
-                        <Image
-                          src={guide.thumbnail}
-                          alt={guide.title}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-purple-400 transition">
-                          {guide.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500" />
-                          <span>{guide.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp size={12} />
-                            {guide.likes}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Eye size={12} />
-                            {guide.views}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setShowAllCitedGuides(false)}
-                  className="w-full bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition text-gray-300"
-                >
-                  折りたたむ
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </div>
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }
+
 

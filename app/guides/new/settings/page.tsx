@@ -43,12 +43,11 @@ function GuideSettingsContent() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [draftData, setDraftData] = useState<{
     title: string;
     excerpt: string;
+    content: string;
     thumbnailPreview: string | null;
-    sections: import('@/utils/draftManager').Section[];
   } | null>(null);
 
   useEffect(() => {
@@ -72,9 +71,9 @@ function GuideSettingsContent() {
 
     setDraftData({
       title: draft.title,
-      excerpt: draft.excerpt ?? '',
-      thumbnailPreview: draft.thumbnailPreview ?? null,
-      sections: draft.sections,
+      excerpt: draft.excerpt,
+      content: draft.content,
+      thumbnailPreview: draft.thumbnailPreview,
     });
 
     // 既存の設定を読み込む
@@ -150,20 +149,6 @@ function GuideSettingsContent() {
     setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
   };
 
-  // セクションから本文を生成（公開されているセクションのみ）
-  const generateContent = (): string => {
-    if (!draftData) return '';
-    return draftData.sections
-      .filter((s) => s.is_published)
-      .map((s) => {
-        if (s.title.trim()) {
-          return `## ${s.title}\n\n${s.body_md}`;
-        }
-        return s.body_md;
-      })
-      .join('\n\n---\n\n');
-  };
-
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.category) newErrors.category = 'カテゴリーを選択してください';
@@ -231,7 +216,7 @@ function GuideSettingsContent() {
               </div>
 
               <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 max-h-96 overflow-y-auto">
-                <MarkdownPreview markdown={generateContent()} />
+                <MarkdownPreview markdown={draftData.content} />
               </div>
             </div>
           </div>
@@ -400,7 +385,7 @@ function GuideSettingsContent() {
 
             <div className="space-y-3">
               <button
-                onClick={() => setShowPreview(!showPreview)}
+                onClick={() => router.push(`/guides/new/preview?articleId=${articleId}`)}
                 className="w-full bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
               >
                 <Eye size={20} />
@@ -427,40 +412,6 @@ function GuideSettingsContent() {
           </div>
         </div>
       </div>
-
-      {/* 全体プレビューモーダル */}
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-gray-700">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex justify-between items-center">
-              <h2 className="text-2xl font-bold">プレビュー</h2>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 hover:bg-gray-800 rounded-lg transition"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {draftData.thumbnailPreview && (
-                <div className="relative aspect-video rounded-lg overflow-hidden mb-6">
-                  <Image
-                    src={draftData.thumbnailPreview}
-                    alt="サムネイル"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">{draftData.title}</h1>
-                <p className="text-gray-400">{draftData.excerpt}</p>
-              </div>
-              <MarkdownPreview markdown={generateContent()} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

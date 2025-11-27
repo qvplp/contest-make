@@ -2,7 +2,14 @@
  * 攻略記事フォームで使用する型定義
  */
 
-export type Classification = 'アニメ' | '漫画' | '実写' | 'カメラワーク' | 'ワークフロー' | 'AIモデル';
+// 分類・AIモデルのラベルは現行どおり日本語を維持
+export type Classification =
+  | 'アニメ'
+  | '漫画'
+  | '実写'
+  | 'カメラワーク'
+  | 'ワークフロー'
+  | 'AIモデル';
 
 export type AIModel =
   | 'GPT-5'
@@ -20,20 +27,22 @@ export type AIModel =
  * 引用した記事の情報
  */
 export interface CitedGuide {
-  id: string; // 入力された記事ID
-  guideId?: number; // 実際の記事ID（検証後）
+  id: string;
+  title?: string;
+  thumbnail?: string;
 }
 
 /**
  * 第1ページ（コンテンツ編集）のフォームデータ
+ * sections を廃止し、単一の content に統一
  */
 export interface ContentFormData {
   title: string;
   excerpt: string;
-  sections: import('@/utils/draftManager').Section[];
+  content: string;
   thumbnail: File | null;
   thumbnailPreview: string | null;
-  citedGuides: CitedGuide[]; // 引用した記事のリスト
+  citedGuides: CitedGuide[];
 }
 
 /**
@@ -50,5 +59,27 @@ export interface SettingsFormData {
 /**
  * 完全なフォームデータ（投稿時に使用）
  */
-export interface CompleteFormData extends ContentFormData, SettingsFormData {}
+export interface CompleteFormData extends ContentFormData, SettingsFormData {
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 初期値
+export const initialContentFormData: ContentFormData = {
+  title: '',
+  excerpt: '',
+  content: '',
+  thumbnail: null,
+  thumbnailPreview: null,
+  citedGuides: [],
+};
+
+export const initialSettingsFormData: SettingsFormData = {
+  category: '',
+  classifications: [],
+  aiModels: [],
+  tags: [],
+  contestTag: '',
+};
 
