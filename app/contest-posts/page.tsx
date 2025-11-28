@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   Search,
@@ -16,6 +15,8 @@ import {
   Trophy,
   Flame,
 } from 'lucide-react';
+import { useWorks } from '@/contexts/WorksContext';
+import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 type Classification = 
   | 'HOT' 
@@ -39,11 +40,11 @@ type AIModel =
   | 'DALL-E 4';
 
 interface ContestPost {
-  id: number;
+  id: string;
   title: string;
   author: string;
   authorAvatar: string;
-  thumbnail: string;
+  mediaSrc: string;
   type: 'image' | 'video';
   classifications: Classification[];
   aiModels: AIModel[];
@@ -68,6 +69,7 @@ function ContestPostsContent() {
   const [showAIModelDropdown, setShowAIModelDropdown] = useState(false);
   const [displayedPosts, setDisplayedPosts] = useState<ContestPost[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const { userWorks } = useWorks();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -83,11 +85,11 @@ function ContestPostsContent() {
 
   const allPosts: ContestPost[] = [
     {
-      id: 1,
+      id: '1',
       title: 'ハロウィンの魔女',
       author: 'AIアーティスト',
       authorAvatar: '/images/avatars/user1.jpg',
-      thumbnail: '/images/samples/sample1.jpg',
+      mediaSrc: '/images/samples/sample1.jpg',
       type: 'image',
       classifications: ['アニメ', 'カメラワーク', 'AIモデル'],
       aiModels: ['Seedream', 'Midjourney v7'],
@@ -99,11 +101,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 2,
+      id: '2',
       title: 'ダンスするかぼちゃ',
       author: 'ビデオクリエイター',
       authorAvatar: '/images/avatars/user2.jpg',
-      thumbnail: '/images/samples/sample3.jpg',
+      mediaSrc: '/images/samples/sample3.jpg',
       type: 'video',
       classifications: ['アニメ', 'ワークフロー', 'AIモデル'],
       aiModels: ['Sora2', 'Seedance'],
@@ -115,11 +117,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 3,
+      id: '3',
       title: 'リアルなお化け屋敷',
       author: 'フォトリアリスト',
       authorAvatar: '/images/avatars/user3.jpg',
-      thumbnail: '/images/samples/sample4.jpg',
+      mediaSrc: '/images/samples/sample4.jpg',
       type: 'image',
       classifications: ['実写', 'カメラワーク', 'AIモデル'],
       aiModels: ['DALL-E 4'],
@@ -131,11 +133,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 4,
+      id: '4',
       title: '幻想的な魔法陣',
       author: 'マジッククリエイター',
       authorAvatar: '/images/avatars/user4.jpg',
-      thumbnail: '/images/samples/sample2.jpg',
+      mediaSrc: '/images/samples/sample2.jpg',
       type: 'image',
       classifications: ['アニメ', 'AIモデル'],
       aiModels: ['Seedream'],
@@ -147,11 +149,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 5,
+      id: '5',
       title: 'ホラー映画のようなシーン',
       author: 'ムービーメーカー',
       authorAvatar: '/images/avatars/user5.jpg',
-      thumbnail: '/images/samples/sample5.jpg',
+      mediaSrc: '/images/samples/sample5.jpg',
       type: 'video',
       classifications: ['実写', 'カメラワーク', 'ワークフロー', 'AIモデル'],
       aiModels: ['Sora2', 'Claude 4'],
@@ -163,11 +165,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 6,
+      id: '6',
       title: '漫画風のハロウィンキャラ',
       author: 'マンガアーティスト',
       authorAvatar: '/images/avatars/user6.jpg',
-      thumbnail: '/images/samples/sample6.jpg',
+      mediaSrc: '/images/samples/sample6.jpg',
       type: 'image',
       classifications: ['漫画', 'AIモデル'],
       aiModels: ['Midjourney v7'],
@@ -179,11 +181,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 7,
+      id: '7',
       title: 'スチームパンクなハロウィン',
       author: 'スチームパンカー',
       authorAvatar: '/images/avatars/user1.jpg',
-      thumbnail: '/images/samples/sample7.jpg',
+      mediaSrc: '/images/samples/sample7.jpg',
       type: 'image',
       classifications: ['実写', 'カメラワーク', 'AIモデル'],
       aiModels: ['DALL-E 4', 'GPT-5'],
@@ -195,11 +197,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 8,
+      id: '8',
       title: 'ダンスパーティーの動画',
       author: 'アニメーター',
       authorAvatar: '/images/avatars/user2.jpg',
-      thumbnail: '/images/samples/sample8.jpg',
+      mediaSrc: '/images/samples/sample8.jpg',
       type: 'video',
       classifications: ['アニメ', 'ワークフロー', 'AIモデル'],
       aiModels: ['Seedance', 'Omnihuman'],
@@ -211,11 +213,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 9,
+      id: '9',
       title: '月夜の狼男',
       author: 'ホラーマスター',
       authorAvatar: '/images/avatars/user3.jpg',
-      thumbnail: '/images/samples/sample1.jpg',
+      mediaSrc: '/images/samples/sample1.jpg',
       type: 'image',
       classifications: ['アニメ', 'カメラワーク', 'AIモデル'],
       aiModels: ['Seedream'],
@@ -227,11 +229,11 @@ function ContestPostsContent() {
       contest: 'halloween2025',
     },
     {
-      id: 10,
+      id: '10',
       title: '魔法使いの実験室',
       author: 'ファンタジーアーティスト',
       authorAvatar: '/images/avatars/user4.jpg',
-      thumbnail: '/images/samples/sample2.jpg',
+      mediaSrc: '/images/samples/sample2.jpg',
       type: 'image',
       classifications: ['アニメ', 'AIモデル'],
       aiModels: ['Midjourney v7'],
@@ -301,7 +303,30 @@ function ContestPostsContent() {
     router.push(`/contest-posts?${params.toString()}`, { scroll: false });
   };
 
-  const sortedPosts = [...allPosts].sort((a, b) => {
+  const userContestPosts = useMemo<ContestPost[]>(
+    () =>
+      userWorks
+        .filter((work) => work.visibility === 'public')
+        .map((work) => ({
+          id: work.id,
+          title: work.title,
+          author: work.authorName,
+          authorAvatar: work.authorAvatar,
+          mediaSrc: work.mediaSource,
+          type: work.mediaType,
+          classifications: work.classifications as Classification[],
+          aiModels: work.aiModels as AIModel[],
+          isHot: work.isHot,
+          likes: work.stats.likes,
+          comments: work.stats.comments,
+          views: work.stats.views,
+          createdAt: work.createdAt,
+          contest: work.contestId || 'user',
+        })),
+    [userWorks],
+  );
+
+  const sortedPosts = [...userContestPosts, ...allPosts].sort((a, b) => {
     if (sortBy === 'popular') {
       return b.likes - a.likes;
     } else {
@@ -449,30 +474,37 @@ function ContestPostsContent() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {displayedPosts.map((post) => (
-            <Link key={post.id} href={`/contest-posts/${post.id}`} className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition">
-              <div className="aspect-square relative">
-                <Image src={post.thumbnail} alt={post.title} fill className="object-cover" />
-                {post.isHot && (
-                  <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-600 to-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                    <Flame size={12} className="animate-pulse" />
-                    HOT
-                  </div>
-                )}
-                {post.type === 'video' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30"><Play className="text-white" size={40} /></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition">
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="text-sm font-semibold mb-2">{post.title}</p>
-                    <p className="text-xs text-gray-400 mb-2">{post.author}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-300">
-                      <span className="flex items-center gap-1"><ThumbsUp size={12} />{post.likes}</span>
-                      <span className="flex items-center gap-1"><MessageCircle size={12} />{post.comments}</span>
-                      <span className="flex items-center gap-1"><Eye size={12} />{post.views.toLocaleString()}</span>
-                    </div>
+          <Link key={post.id} href={`/contest-posts/${post.id}`} className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition">
+            <div className="relative">
+              <WorkMediaPreview
+                mediaType={post.type}
+                src={post.mediaSrc}
+                aspectRatio="1/1"
+                className="rounded-none"
+              />
+              {post.isHot && (
+                <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-600 to-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                  <Flame size={12} className="animate-pulse" />
+                  HOT
+                </div>
+              )}
+              {post.type === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <Play className="text-white" size={40} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <p className="text-sm font-semibold mb-2">{post.title}</p>
+                  <p className="text-xs text-gray-400 mb-2">{post.author}</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-300">
+                    <span className="flex items-center gap-1"><ThumbsUp size={12} />{post.likes}</span>
+                    <span className="flex items-center gap-1"><MessageCircle size={12} />{post.comments}</span>
+                    <span className="flex items-center gap-1"><Eye size={12} />{post.views.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
+            </div>
             </Link>
           ))}
         </div>

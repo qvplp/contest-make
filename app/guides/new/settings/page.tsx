@@ -25,6 +25,11 @@ import {
   AIModel,
   SettingsFormData,
 } from '@/types/guideForm';
+import {
+  GUIDE_CATEGORIES,
+  CLASSIFICATION_OPTIONS,
+  AI_MODEL_OPTIONS,
+} from '@/constants/taxonomies';
 
 function GuideSettingsContent() {
   const { isLoggedIn } = useAuth();
@@ -86,39 +91,6 @@ function GuideSettingsContent() {
       });
     }
   }, [isLoggedIn, router, articleId]);
-
-  const categories = [
-    'プロンプト技術',
-    'モデル別攻略',
-    'アニメーション',
-    'エフェクト・演出',
-    'オブジェクト制作',
-    'キャラクターデザイン',
-    'ポートレート',
-    'ワークフロー',
-  ];
-
-  const classificationOptions: Classification[] = [
-    'アニメ',
-    '漫画',
-    '実写',
-    'カメラワーク',
-    'ワークフロー',
-    'AIモデル',
-  ];
-
-  const aiModelOptions: AIModel[] = [
-    'GPT-5',
-    'Sora2',
-    'Seedream',
-    'Seedance',
-    'Dreamina',
-    'Omnihuman',
-    'Hotgen General',
-    'Claude 4',
-    'Midjourney v7',
-    'DALL-E 4',
-  ];
 
   const toggleClassification = (classification: Classification) => {
     setFormData((prev) => ({
@@ -233,7 +205,7 @@ function GuideSettingsContent() {
                 className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
               >
                 <option value="">選択してください</option>
-                {categories.map((cat) => (
+                {GUIDE_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -248,7 +220,7 @@ function GuideSettingsContent() {
                 <span className="text-sm font-normal text-gray-400 ml-2">（複数選択可）</span>
               </label>
               <div className="space-y-2">
-                {classificationOptions.map((classification) => (
+                {CLASSIFICATION_OPTIONS.map((classification) => (
                   <button
                     key={classification}
                     onClick={() => toggleClassification(classification)}
@@ -279,7 +251,7 @@ function GuideSettingsContent() {
               </label>
 
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {aiModelOptions.map((model) => (
+                {AI_MODEL_OPTIONS.map((model) => (
                   <button
                     key={model}
                     onClick={() => toggleAIModel(model)}

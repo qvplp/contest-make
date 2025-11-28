@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { WorksProvider } from '@/contexts/WorksContext';
 import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -104,7 +105,9 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} bg-gray-950 text-white`}>
         <AuthProvider>
-          <LayoutContent>{children}</LayoutContent>
+          <WorksProvider>
+            <LayoutContent>{children}</LayoutContent>
+          </WorksProvider>
         </AuthProvider>
       </body>
     </html>

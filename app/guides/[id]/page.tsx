@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import dynamic from 'next/dynamic';
+import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 const BlockEditor = dynamic(() => import('@/components/editor/BlockEditor'), {
   ssr: false,
@@ -114,7 +115,15 @@ export default function GuideDetailPage() {
     { id: string; author: string; text: string; createdAt: string }[]
   >([]);
   const [newComment, setNewComment] = useState('');
-  const [citations, setCitations] = useState<any[]>([]);
+  const [citations, setCitations] = useState<
+    {
+      id: string;
+      title: string;
+      author?: string;
+      mediaSrc: string;
+      mediaType: 'image' | 'video';
+    }[]
+  >([]);
 
   useEffect(() => {
     // 実際は API から guideId ごとの記事を取得する想定
@@ -125,7 +134,11 @@ export default function GuideDetailPage() {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
     if (saved) {
       try {
-        setCitations(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        const normalized = parsed
+          .map((item: any) => normalizeCitation(item))
+          .filter(Boolean);
+        setCitations(normalized);
       } catch (e) {
         console.error('Failed to parse citations:', e);
       }
@@ -299,23 +312,23 @@ export default function GuideDetailPage() {
 
         {citations.length > 0 && (
           <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 mb-8">
-            <h3 className="text-lg font-semibold mb-4">🎨 この記事を参考にした作品</h3>
+            <h3 className="text-lg font-semibold mb-4">🎨 引用された作品</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {citations.map((citation) => (
                 <div
                   key={citation.id}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-gray-800"
+                  className="relative rounded-lg overflow-hidden bg-gray-800"
                 >
-                  <Image
-                    src={citation.thumbnail}
-                    alt={citation.title}
-                    fill
-                    className="object-cover"
+                  <WorkMediaPreview
+                    mediaType={citation.mediaType}
+                    src={citation.mediaSrc}
+                    aspectRatio="1/1"
+                    className="rounded-none"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   <div className="absolute bottom-2 left-2 right-2">
                     <p className="text-sm font-medium truncate">{citation.title}</p>
-                    <p className="text-xs text-gray-400">{citation.author}</p>
+                    <p className="text-xs text-gray-400">{citation.author || '匿名ユーザー'}</p>
                   </div>
                 </div>
               ))}
@@ -378,4 +391,17 @@ export default function GuideDetailPage() {
   );
 }
 
+function normalizeCitation(item: any) {
+  if (!item || !item.id) return null;
+  const mediaSrc = item.mediaSource || item.thumbnail || '/images/samples/sample1.jpg';
+  const mediaType: 'image' | 'video' = item.mediaType === 'video' ? 'video' : 'image';
+
+  return {
+    id: item.id,
+    title: item.title || '無題の作品',
+    author: item.author,
+    mediaSrc,
+    mediaType,
+  };
+}
 

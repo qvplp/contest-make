@@ -4,9 +4,21 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Upload, X, Save, ArrowRight, Eye, FileText, Plus, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Save,
+  ArrowRight,
+  Eye,
+  FileText,
+  Trash2,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveDraft, getDraft } from '@/utils/draftManager';
+import { CitedGuideUrlInput } from '@/components/guides/CitedGuideUrlInput';
 import {
   ContentFormData,
   initialContentFormData,
@@ -36,7 +48,6 @@ export default function NewGuidePage() {
   const [formData, setFormData] = useState<ContentFormData>(initialContentFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const [newCitedGuideId, setNewCitedGuideId] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -122,19 +133,6 @@ export default function NewGuidePage() {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  };
-
-  const handleAddCitedGuide = () => {
-    if (!newCitedGuideId.trim()) return;
-    if (formData.citedGuides.some((g) => g.id === newCitedGuideId.trim())) {
-      alert('この記事IDは既に追加されています');
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      citedGuides: [...prev.citedGuides, { id: newCitedGuideId.trim() }],
-    }));
-    setNewCitedGuideId('');
   };
 
   const handleRemoveCitedGuide = (id: string) => {
@@ -296,38 +294,35 @@ export default function NewGuidePage() {
               引用した記事（オプション）
             </label>
             <p className="text-gray-500 text-sm mb-4">
-              参考にした攻略記事のIDを追加できます
+              参考にした攻略記事のURLを貼り付けて追加できます
             </p>
 
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newCitedGuideId}
-                onChange={(e) => setNewCitedGuideId(e.target.value)}
-                placeholder="記事IDを入力"
-                className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg 
-                         text-white placeholder-gray-500
-                         focus:outline-none focus:ring-2 focus:ring-purple-600"
-              />
-              <button
-                type="button"
-                onClick={handleAddCitedGuide}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition flex items-center gap-2"
-              >
-                <Plus size={18} />
-                追加
-              </button>
-            </div>
+            <CitedGuideUrlInput
+              existingIds={formData.citedGuides.map((g) => g.id)}
+              onAdd={(info) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  citedGuides: [
+                    ...prev.citedGuides,
+                    {
+                      id: info.id,
+                      title: info.title,
+                      thumbnail: info.thumbnailUrl ?? undefined,
+                    },
+                  ],
+                }))
+              }
+            />
 
             {formData.citedGuides.length > 0 && (
-              <div className="space-y-2">
+              <div className="mt-4 space-y-2">
                 {formData.citedGuides.map((guide) => (
                   <div
                     key={guide.id}
                     className="flex items-center justify-between px-4 py-2 bg-gray-800 rounded-lg"
                   >
-                    <span className="text-gray-300 font-mono text-sm">
-                      {guide.id}
+                    <span className="text-gray-300 font-mono text-sm truncate">
+                      {guide.title || guide.id}
                     </span>
                     <button
                       type="button"

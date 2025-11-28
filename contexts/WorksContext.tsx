@@ -1,0 +1,221 @@
+'use client';
+
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { CreateWorkInput, Work } from '@/types/works';
+
+interface WorksContextValue {
+  userWorks: Work[];
+  createWork: (input: CreateWorkInput) => { success: boolean; error?: string };
+  toggleVisibility: (workId: string) => void;
+}
+
+const WorksContext = createContext<WorksContextValue | undefined>(undefined);
+
+export function WorksProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [userWorks, setUserWorks] = useState<Work[]>([]);
+
+  const storageKey = useMemo(
+    () => (user ? `user_works_${user.id}` : null),
+    [user],
+  );
+
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') {
+      setUserWorks([]);
+      return;
+    }
+
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const parsed: Work[] = JSON.parse(stored).map(normalizeWork);
+        setUserWorks(parsed);
+      } catch {
+        setUserWorks([]);
+      }
+    } else {
+      setUserWorks([]);
+    }
+  }, [storageKey]);
+
+  const persist = (works: Work[]) => {
+    if (!storageKey || typeof window === 'undefined') return;
+    localStorage.setItem(storageKey, JSON.stringify(works));
+  };
+
+  const createWork = (input: CreateWorkInput) => {
+    if (!user) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    const newWork: Work = {
+      id:
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `work_${Date.now()}`,
+      title: input.title,
+      authorId: user.id,
+      authorName: user.name,
+      authorAvatar: user.avatar || '/images/avatars/user1.jpg',
+      mediaType: input.mediaType,
+      mediaSource: input.mediaSource,
+      summary: input.summary,
+      classifications: input.classifications,
+      aiModels: input.classifications.includes('AIモデル')
+        ? input.aiModels
+        : [],
+      tags: input.tags,
+      referencedGuideIds: input.referencedGuideIds,
+      isHot: false,
+      visibility: input.visibility,
+      createdAt: new Date().toISOString(),
+      stats: {
+        likes: 0,
+        comments: 0,
+        views: 0,
+      },
+    };
+
+    setUserWorks((prev) => {
+      const normalizedList = prev.map(normalizeWork);
+      const next = [newWork, ...normalizedList];
+      persist(next);
+      if (newWork.visibility === 'public') {
+        addWorkToGuideCitations(newWork);
+      }
+      return next;
+    });
+
+    return { success: true };
+  };
+
+  const toggleVisibility = (workId: string) => {
+    setUserWorks((prev) => {
+      const normalizedList = prev.map(normalizeWork);
+      let updatedWork: Work | null = null;
+      const next = normalizedList.map((work) => {
+        if (work.id !== workId) return work;
+        const toggled = {
+          ...work,
+          visibility: work.visibility === 'public' ? 'private' : 'public',
+        };
+        updatedWork = toggled;
+        return toggled;
+      });
+
+      persist(next);
+
+      if (updatedWork) {
+        if (updatedWork.visibility === 'public') {
+          addWorkToGuideCitations(updatedWork);
+        } else {
+          removeWorkFromGuideCitations(updatedWork);
+        }
+      }
+
+      return next;
+    });
+  };
+
+  return (
+    <WorksContext.Provider value={{ userWorks, createWork, toggleVisibility }}>
+      {children}
+    </WorksContext.Provider>
+  );
+}
+
+export function useWorks() {
+  const context = useContext(WorksContext);
+  if (!context) {
+    throw new Error('useWorks must be used within a WorksProvider');
+  }
+  return context;
+}
+
+function normalizeWork(work: any): Work {
+  const mediaSource =
+    work.mediaSource || work.thumbnailUrl || work.mediaUrl || '/images/samples/sample1.jpg';
+
+  return {
+    id: work.id,
+    title: work.title || '無題の作品',
+    authorId: work.authorId || '',
+    authorName: work.authorName || 'ユーザー',
+    authorAvatar: work.authorAvatar || '/images/avatars/user1.jpg',
+    mediaType: work.mediaType === 'video' ? 'video' : 'image',
+    mediaSource,
+    summary: work.summary || '',
+    classifications: Array.isArray(work.classifications) ? work.classifications : [],
+    aiModels: Array.isArray(work.aiModels) ? work.aiModels : [],
+    tags: Array.isArray(work.tags) ? work.tags : [],
+    referencedGuideIds: Array.isArray(work.referencedGuideIds) ? work.referencedGuideIds : [],
+    isHot: Boolean(work.isHot),
+    visibility: work.visibility === 'private' ? 'private' : 'public',
+    createdAt: work.createdAt || new Date().toISOString(),
+    stats: {
+      likes: work.stats?.likes ?? 0,
+      comments: work.stats?.comments ?? 0,
+      views: work.stats?.views ?? 0,
+    },
+    contestId: work.contestId,
+  };
+}
+
+function addWorkToGuideCitations(work: Work) {
+  if (typeof window === 'undefined') return;
+  if (!work.referencedGuideIds || work.referencedGuideIds.length === 0) return;
+
+  work.referencedGuideIds.forEach((guideId) => {
+    if (!guideId) return;
+    const key = `guide_citations_${guideId}`;
+    let citations: any[] = [];
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        citations = JSON.parse(stored);
+      } catch {
+        citations = [];
+      }
+    }
+
+    const exists = citations.some((citation) => citation.id === work.id);
+    if (exists) return;
+
+    citations.push({
+      id: work.id,
+      title: work.title,
+      author: work.authorName,
+      mediaType: work.mediaType,
+      mediaSource: work.mediaSource,
+      createdAt: work.createdAt,
+    });
+
+    localStorage.setItem(key, JSON.stringify(citations));
+  });
+}
+
+function removeWorkFromGuideCitations(work: Work) {
+  if (typeof window === 'undefined') return;
+  if (!work.referencedGuideIds || work.referencedGuideIds.length === 0) return;
+
+  work.referencedGuideIds.forEach((guideId) => {
+    if (!guideId) return;
+    const key = `guide_citations_${guideId}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return;
+
+    let citations: any[] = [];
+    try {
+      citations = JSON.parse(stored);
+    } catch {
+      citations = [];
+    }
+
+    const next = citations.filter((citation) => citation.id !== work.id);
+    localStorage.setItem(key, JSON.stringify(next));
+  });
+}
+
+

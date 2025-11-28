@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -18,7 +18,11 @@ import {
   Play,
   Flame,
   Check,
+  PlusCircle,
 } from 'lucide-react';
+import { useWorks } from '@/contexts/WorksContext';
+import WorkSubmitModal from '@/components/works/WorkSubmitModal';
+import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 interface Badge {
   id: number;
@@ -50,20 +54,10 @@ interface UserGuide {
   createdAt: string;
 }
 
-interface UserPost {
-  id: number;
-  title: string;
-  thumbnail: string;
-  type: 'image' | 'video';
-  isHot: boolean;
-  likes: number;
-  comments: number;
-  views: number;
-  createdAt: string;
-}
-
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'guides' | 'posts' | 'notifications'>('guides');
+  const [isWorkModalOpen, setIsWorkModalOpen] = useState(false);
+  const { userWorks, toggleVisibility } = useWorks();
 
   const userProfile = {
     id: '1',
@@ -106,14 +100,13 @@ export default function ProfilePage() {
     { id: 4, title: 'カメラアングルの使い分け', thumbnail: '/images/samples/sample4.jpg', likes: 156, comments: 22, views: 1234, createdAt: '2025-10-17T16:45:00Z' },
   ];
 
-  const userPosts: UserPost[] = [
-    { id: 1, title: 'ハロウィンの魔女', thumbnail: '/images/samples/sample1.jpg', type: 'image', isHot: true, likes: 542, comments: 78, views: 3456, createdAt: '2025-10-25T10:00:00Z' },
-    { id: 2, title: 'ダンスするかぼちゃ', thumbnail: '/images/samples/sample3.jpg', type: 'video', isHot: false, likes: 234, comments: 45, views: 1876, createdAt: '2025-10-24T14:30:00Z' },
-    { id: 3, title: 'リアルなお化け屋敷', thumbnail: '/images/samples/sample4.jpg', type: 'image', isHot: true, likes: 678, comments: 92, views: 4567, createdAt: '2025-10-23T09:15:00Z' },
-    { id: 4, title: '幻想的な魔法陣', thumbnail: '/images/samples/sample2.jpg', type: 'image', isHot: false, likes: 345, comments: 56, views: 2345, createdAt: '2025-10-22T16:45:00Z' },
-    { id: 5, title: 'ホラー映画のようなシーン', thumbnail: '/images/samples/sample5.jpg', type: 'video', isHot: true, likes: 789, comments: 123, views: 5678, createdAt: '2025-10-21T11:20:00Z' },
-    { id: 6, title: '漫画風のハロウィンキャラ', thumbnail: '/images/samples/sample6.jpg', type: 'image', isHot: false, likes: 456, comments: 67, views: 2987, createdAt: '2025-10-20T13:30:00Z' },
-  ];
+  const sortedUserWorks = useMemo(
+    () =>
+      [...userWorks].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [userWorks],
+  );
 
   const notifications: Notification[] = [
     { id: 1, type: 'like', title: 'いいねを獲得しました', message: 'あなたの作品「ハロウィンの魔女」が100いいねを獲得しました', icon: '🔥', isRead: false, createdAt: '2025-10-31T08:00:00Z', link: '/contest-posts/1' },
@@ -137,6 +130,8 @@ export default function ProfilePage() {
     if (diffDays === 1) return '1日前';
     return `${diffDays}日前`;
   };
+
+  const userPostsCount = userWorks.length;
 
   return (
     <div className="bg-gray-950 min-h-screen">
@@ -239,7 +234,7 @@ export default function ProfilePage() {
           </button>
           <button onClick={() => setActiveTab('posts')} className={`flex items-center gap-2 px-6 py-3 font-semibold transition relative ${activeTab === 'posts' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}>
             <ImageIcon size={20} />
-            投稿作品 ({userProfile.stats.postsCount})
+            投稿作品 ({userPostsCount})
             {activeTab === 'posts' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />}
           </button>
           <button onClick={() => setActiveTab('notifications')} className={`flex items-center gap-2 px-6 py-3 font-semibold transition relative ${activeTab === 'notifications' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}>
@@ -291,47 +286,79 @@ export default function ProfilePage() {
 
         {activeTab === 'posts' && (
           <div>
-            <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6">投稿した作品 ({userPosts.length}件)</h3>
-            {userPosts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                {userPosts.map((post) => (
-                  <Link key={post.id} href={`/contest-posts/${post.id}`} className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition">
-                    <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-800">
-                      <Image
-                        src={post.thumbnail}
-                        alt={post.title}
-                        fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                        className="object-cover group-hover:scale-110 transition-transform"
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">
+                投稿した作品 ({sortedUserWorks.length}件)
+              </h3>
+              <button
+                onClick={() => setIsWorkModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold transition text-sm"
+              >
+                <PlusCircle size={18} />
+                新しい作品を投稿
+              </button>
+            </div>
+            {sortedUserWorks.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                {sortedUserWorks.map((work) => (
+                  <div key={work.id} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="relative">
+                      <WorkMediaPreview
+                        mediaType={work.mediaType}
+                        src={work.mediaSource}
+                        aspectRatio="1/1"
+                        className="rounded-none"
                       />
-                      {post.isHot && (
+                      {work.isHot && (
                         <div className="absolute top-2 left-2 px-2 py-1 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded text-xs font-bold flex items-center gap-1">
                           <Flame size={12} />
                           HOT
                         </div>
                       )}
-                      {post.type === 'video' && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black/70 rounded-full flex items-center justify-center">
+                      {work.mediaType === 'video' && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 bg-black/70 rounded-full flex items-center justify-center">
                             <Play className="text-white" fill="white" size={20} />
                           </div>
                         </div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm">
-                          <ThumbsUp size={14} />
-                          {post.likes}
-                        </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                        <p className="text-sm font-semibold line-clamp-1">{work.title}</p>
+                        <p className="text-xs text-gray-300">
+                          {work.classifications[0] || '分類未設定'}
+                        </p>
                       </div>
                     </div>
-                  </Link>
+                    <div className="p-3 flex items-center justify-between text-xs">
+                      <span
+                        className={`px-2 py-1 rounded-full font-semibold ${
+                          work.visibility === 'public'
+                            ? 'bg-green-900/40 text-green-300'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}
+                      >
+                        {work.visibility === 'public' ? '公開中' : '非公開'}
+                      </span>
+                      <button
+                        onClick={() => toggleVisibility(work.id)}
+                        className="text-purple-400 hover:text-purple-200 font-semibold"
+                      >
+                        切り替え
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-12 text-gray-400">
                 <ImageIcon size={48} className="mx-auto mb-4 opacity-50" />
                 <p>まだ作品を投稿していません</p>
-                <Link href="/contest/halloween2025/submit" className="inline-block mt-4 text-purple-400 hover:text-purple-300">最初の作品を投稿する →</Link>
+                <button
+                  onClick={() => setIsWorkModalOpen(true)}
+                  className="inline-block mt-4 text-purple-400 hover:text-purple-300"
+                >
+                  最初の作品を投稿する →
+                </button>
               </div>
             )}
           </div>
@@ -377,6 +404,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+      <WorkSubmitModal isOpen={isWorkModalOpen} onClose={() => setIsWorkModalOpen(false)} />
     </div>
   );
 }

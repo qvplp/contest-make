@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -15,8 +15,10 @@ import {
   Coins,
   CreditCard,
   X,
+  PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import WorkSubmitModal from '@/components/works/WorkSubmitModal';
 
 interface SidebarProps {
   isMobileMenuOpen?: boolean;
@@ -26,6 +28,7 @@ interface SidebarProps {
 export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // モックデータ: クレジット情報（実際の実装ではAPIから取得）
   const credits = 92;
@@ -143,6 +146,16 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
         </Link>
       </div>
 
+      <div className="mx-4 mb-4">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-lg font-semibold transition"
+        >
+          <PlusCircle size={20} />
+          作品を投稿
+        </button>
+      </div>
+
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto">
         <div className="space-y-1">
@@ -201,6 +214,7 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
           <span className="text-sm font-medium">ログアウト</span>
         </button>
       </div>
+      <WorkSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </aside>
   );
 }
