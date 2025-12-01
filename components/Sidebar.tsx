@@ -16,6 +16,7 @@ import {
   CreditCard,
   X,
   PlusCircle,
+  Gavel,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import WorkSubmitModal from '@/components/works/WorkSubmitModal';
@@ -27,7 +28,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, isJudge } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // モックデータ: クレジット情報（実際の実装ではAPIから取得）
@@ -178,6 +179,21 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
               </Link>
             );
           })}
+          {/* 審査員向けメニュー */}
+          {isJudge && (
+            <Link
+              href="/judge/contests"
+              onClick={handleMenuItemClick}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive('/judge')
+                  ? 'bg-yellow-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <Gavel size={20} />
+              <span className="font-medium">コンテスト審査</span>
+            </Link>
+          )}
         </div>
       </nav>
 

@@ -7,11 +7,13 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  role?: 'user' | 'judge' | 'admin'; // ユーザーロール（現状は全員審査員として扱う）
 }
 
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
+  isJudge: boolean; // 審査員かどうか（現状は全員true）
   login: (userData: User) => void;
   logout: () => void;
 }
@@ -49,8 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // 現状は全員審査員として扱う（ロール実装がないため）
+  const isJudge = isLoggedIn;
+
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, isJudge, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

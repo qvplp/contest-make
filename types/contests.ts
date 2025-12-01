@@ -16,6 +16,41 @@ export interface ContestInfo {
   endDate: string;
   status: 'active' | 'upcoming' | 'ended';
   isActive: boolean; // DB上のフラグ（現状はstatus === 'active'で判定）
+  // 審査関連のスケジュール
+  reviewStartDate?: string; // 審査開始日
+  reviewEndDate?: string; // 審査終了日
+  resultAnnouncementDate?: string; // 結果発表日
+}
+
+/**
+ * コンテストの審査スケジュールステータス
+ */
+export type ContestScheduleStatus = 'upcoming' | 'submission' | 'review' | 'announcement' | 'ended';
+
+/**
+ * コンテストの審査スケジュールステータスを取得
+ */
+export function getContestScheduleStatus(contest: ContestInfo): ContestScheduleStatus {
+  const now = new Date();
+  const startDate = new Date(contest.startDate);
+  const endDate = new Date(contest.endDate);
+  const reviewStartDate = contest.reviewStartDate ? new Date(contest.reviewStartDate) : null;
+  const reviewEndDate = contest.reviewEndDate ? new Date(contest.reviewEndDate) : null;
+  const resultAnnouncementDate = contest.resultAnnouncementDate ? new Date(contest.resultAnnouncementDate) : null;
+
+  if (now < startDate) {
+    return 'upcoming';
+  }
+  if (now < endDate) {
+    return 'submission';
+  }
+  if (reviewStartDate && reviewEndDate && now >= reviewStartDate && now < reviewEndDate) {
+    return 'review';
+  }
+  if (resultAnnouncementDate && reviewEndDate && now >= reviewEndDate && now < resultAnnouncementDate) {
+    return 'announcement';
+  }
+  return 'ended';
 }
 
 /**
@@ -34,7 +69,10 @@ export const AVAILABLE_CONTESTS: ContestInfo[] = [
     submissions: 1234,
     votes: 12345,
     startDate: '2025-10-01',
-    endDate: '2025-11-01',
+    endDate: '2025-10-25',
+    reviewStartDate: '2025-10-26',
+    reviewEndDate: '2025-10-31',
+    resultAnnouncementDate: '2025-11-01',
     status: 'active',
     isActive: true,
   },
@@ -49,7 +87,10 @@ export const AVAILABLE_CONTESTS: ContestInfo[] = [
     submissions: 0,
     votes: 0,
     startDate: '2025-12-01',
-    endDate: '2026-01-15',
+    endDate: '2026-01-10',
+    reviewStartDate: '2026-01-11',
+    reviewEndDate: '2026-01-13',
+    resultAnnouncementDate: '2026-01-15',
     status: 'upcoming',
     isActive: false,
   },
@@ -64,7 +105,10 @@ export const AVAILABLE_CONTESTS: ContestInfo[] = [
     submissions: 2345,
     votes: 23456,
     startDate: '2024-07-01',
-    endDate: '2024-08-31',
+    endDate: '2024-08-25',
+    reviewStartDate: '2024-08-26',
+    reviewEndDate: '2024-08-29',
+    resultAnnouncementDate: '2024-08-31',
     status: 'ended',
     isActive: false,
   },
