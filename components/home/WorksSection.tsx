@@ -116,7 +116,7 @@ const WorksSection: React.FC = () => {
     <section className="mb-8 sm:mb-12 lg:mb-16">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-          🎨 新着作品
+          🎨 みんなの投稿作品
         </h2>
         <div className="flex items-center gap-3">
           <button

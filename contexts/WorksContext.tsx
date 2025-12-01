@@ -8,6 +8,7 @@ interface WorksContextValue {
   userWorks: Work[];
   createWork: (input: CreateWorkInput) => { success: boolean; error?: string };
   toggleVisibility: (workId: string) => void;
+  submitWorkToContest: (workId: string, contestId: string) => { success: boolean; error?: string };
 }
 
 const WorksContext = createContext<WorksContextValue | undefined>(undefined);
@@ -119,8 +120,39 @@ export function WorksProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const submitWorkToContest = (workId: string, contestId: string) => {
+    if (!user) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    setUserWorks((prev) => {
+      const normalizedList = prev.map(normalizeWork);
+      const work = normalizedList.find((w) => w.id === workId);
+      if (!work) {
+        return prev;
+      }
+
+      if (work.authorId !== user.id) {
+        return prev;
+      }
+
+      const next = normalizedList.map((w) => {
+        if (w.id !== workId) return w;
+        return {
+          ...w,
+          contestId,
+        };
+      });
+
+      persist(next);
+      return next;
+    });
+
+    return { success: true };
+  };
+
   return (
-    <WorksContext.Provider value={{ userWorks, createWork, toggleVisibility }}>
+    <WorksContext.Provider value={{ userWorks, createWork, toggleVisibility, submitWorkToContest }}>
       {children}
     </WorksContext.Provider>
   );

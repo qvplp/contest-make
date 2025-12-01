@@ -400,7 +400,7 @@ function ContestPostsContent() {
             <div>
               <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
                 <Trophy className="text-yellow-400" />
-                コンテスト投稿作品
+                投稿作品
               </h1>
               <p className="text-gray-400">みんなの素晴らしい作品をチェックしよう</p>
             </div>

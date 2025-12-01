@@ -1,46 +1,43 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Image from 'next/image';
+import { useWorks } from '@/contexts/WorksContext';
 import {
-  Upload,
   X,
   Check,
   AlertCircle,
+  Trophy,
+  Search,
   Play,
   FileVideo,
   Image as ImageIcon,
-  Trophy,
 } from 'lucide-react';
+import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 interface FormData {
+  selectedWorkId: string | null;
   title: string;
   description: string;
   categories: string[];
   division: string;
-  file: File | null;
-  filePreview: string | null;
-  fileType: 'image' | 'video' | null;
 }
 
 export default function SubmitPage() {
   const { isLoggedIn } = useAuth();
+  const { userWorks, submitWorkToContest } = useWorks();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<FormData>({
+    selectedWorkId: null,
     title: '',
     description: '',
     categories: [],
     division: '',
-    file: null,
-    filePreview: null,
-    fileType: null,
   });
 
-  const [isDragging, setIsDragging] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -61,61 +58,34 @@ export default function SubmitPage() {
 
   const divisions = ['イラスト', 'アニメ短編'];
 
-  // ファイルハンドリング
-  const handleFileChange = (file: File) => {
-    const maxSize = 300 * 1024 * 1024;
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4'];
+  // 投稿済み作品をフィルタリング（公開・非公開問わず）
+  const availableWorks = useMemo(() => {
+    return userWorks.filter((work) => {
+      if (searchQuery.trim() === '') return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        work.title.toLowerCase().includes(query) ||
+        work.summary.toLowerCase().includes(query) ||
+        work.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    });
+  }, [userWorks, searchQuery]);
 
-    if (!allowedTypes.includes(file.type)) {
-      setErrors((prev) => ({
-        ...prev,
-        file: '対応ファイル形式: JPEG, PNG, GIF, MP4',
-      }));
-      return;
-    }
+  const selectedWork = useMemo(() => {
+    if (!formData.selectedWorkId) return null;
+    return userWorks.find((work) => work.id === formData.selectedWorkId) || null;
+  }, [userWorks, formData.selectedWorkId]);
 
-    if (file.size > maxSize) {
-      setErrors((prev) => ({
-        ...prev,
-        file: 'ファイルサイズは300MB以下にしてください',
-      }));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+  // 作品選択時にタイトルと説明を自動入力
+  useEffect(() => {
+    if (selectedWork) {
       setFormData((prev) => ({
         ...prev,
-        file,
-        filePreview: e.target?.result as string,
-        fileType,
+        title: prev.title || selectedWork.title,
+        description: prev.description || selectedWork.summary,
       }));
-      setErrors((prev) => {
-        const { file, ...rest } = prev;
-        return rest;
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileChange(file);
     }
-  };
+  }, [selectedWork]);
 
   const toggleCategory = (category: string) => {
     setFormData((prev) => ({
@@ -128,6 +98,10 @@ export default function SubmitPage() {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    if (!formData.selectedWorkId) {
+      newErrors.selectedWorkId = '作品を選択してください';
+    }
 
     if (!formData.title.trim()) {
       newErrors.title = 'タイトルを入力してください';
@@ -145,10 +119,6 @@ export default function SubmitPage() {
       newErrors.division = '作品部門を選択してください';
     }
 
-    if (!formData.file) {
-      newErrors.file = 'ファイルをアップロードしてください';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -161,13 +131,25 @@ export default function SubmitPage() {
   };
 
   const confirmSubmit = async () => {
+    if (!formData.selectedWorkId) return;
+
     setIsSubmitting(true);
-    
+
+    // 作品をコンテストに応募
+    const result = submitWorkToContest(formData.selectedWorkId, 'halloween2025');
+
+    if (!result.success) {
+      setErrors({ submit: result.error || '応募に失敗しました' });
+      setIsSubmitting(false);
+      setShowConfirmModal(false);
+      return;
+    }
+
     setTimeout(() => {
       setIsSubmitting(false);
       setShowConfirmModal(false);
       setSubmitSuccess(true);
-      
+
       setTimeout(() => {
         router.push('/contest/halloween2025/vote');
       }, 3000);
@@ -204,96 +186,148 @@ export default function SubmitPage() {
         </div>
 
         <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700 space-y-6">
+          {/* 作品選択セクション */}
           <div>
             <label className="block font-semibold mb-3 text-lg">
-              作品ファイル <span className="text-red-500">*</span>
+              応募する作品を選択 <span className="text-red-500">*</span>
             </label>
-            
-            {!formData.file ? (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition ${
-                  isDragging
-                    ? 'border-purple-500 bg-purple-900/20'
-                    : 'border-gray-600 hover:border-gray-500'
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mx-auto mb-4 text-gray-400" size={48} />
-                <p className="text-lg font-semibold mb-2">
-                  このパネルをクリックして、mp4形式の動画（10秒〜5分、最大300MB）をアップロードしてください。
+
+            {availableWorks.length === 0 ? (
+              <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-12 text-center">
+                <p className="text-gray-400 mb-4">
+                  投稿済みの作品がありません
                 </p>
-                <p className="text-sm text-gray-400">
-                  対応形式: JPEG, PNG, GIF, MP4
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,video/mp4"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileChange(file);
-                  }}
-                  className="hidden"
-                />
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-purple-400 hover:text-purple-300 font-semibold"
+                >
+                  作品を投稿する →
+                </button>
               </div>
             ) : (
-              <div className="relative">
-                <div className="bg-black rounded-xl overflow-hidden">
-                  {formData.fileType === 'image' ? (
-                    <div className="aspect-video relative">
-                      <Image
-                        src={formData.filePreview!}
-                        alt="Preview"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <video
-                      src={formData.filePreview!}
-                      controls
-                      className="w-full aspect-video"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
+              <>
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="作品を検索..."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    />
+                  </div>
                 </div>
-                
-                <button
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      file: null,
-                      filePreview: null,
-                      fileType: null,
-                    }))
-                  }
-                  className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 p-2 rounded-lg transition"
-                >
-                  <X size={20} />
-                </button>
 
-                <div className="mt-4 flex items-center gap-3 text-sm text-gray-300">
-                  {formData.fileType === 'image' ? (
-                    <ImageIcon size={16} />
-                  ) : (
-                    <FileVideo size={16} />
-                  )}
-                  <span>{formData.file.name}</span>
-                  <span className="text-gray-500">
-                    ({(formData.file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-2">
+                  {availableWorks.map((work) => (
+                    <button
+                      key={work.id}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          selectedWorkId: prev.selectedWorkId === work.id ? null : work.id,
+                        }))
+                      }
+                      className={`relative rounded-lg overflow-hidden border-2 transition ${
+                        formData.selectedWorkId === work.id
+                          ? 'border-purple-600 ring-2 ring-purple-600'
+                          : 'border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      <WorkMediaPreview
+                        mediaType={work.mediaType}
+                        src={work.mediaSource}
+                        aspectRatio="16/9"
+                        className="rounded-none"
+                      />
+                      {formData.selectedWorkId === work.id && (
+                        <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1.5">
+                          <Check size={16} className="text-white" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 hover:opacity-100 transition">
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
+                            {work.title}
+                          </h3>
+                          <div className="flex items-center gap-2 text-xs text-gray-300">
+                            {work.mediaType === 'video' ? (
+                              <FileVideo size={12} />
+                            ) : (
+                              <ImageIcon size={12} />
+                            )}
+                            <span>{work.mediaType === 'video' ? '動画' : '画像'}</span>
+                            {work.visibility === 'private' && (
+                              <span className="text-yellow-400">非公開</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </div>
-            )}
-            
-            {errors.file && (
-              <p className="text-red-400 text-sm mt-2">{errors.file}</p>
+                {errors.selectedWorkId && (
+                  <p className="text-red-400 text-sm mt-2">{errors.selectedWorkId}</p>
+                )}
+              </>
             )}
           </div>
+
+          {/* 選択された作品のプレビュー */}
+          {selectedWork && (
+            <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+              <h3 className="font-semibold mb-4">選択された作品</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative rounded-lg overflow-hidden">
+                  <WorkMediaPreview
+                    mediaType={selectedWork.mediaType}
+                    src={selectedWork.mediaSource}
+                    aspectRatio="16/9"
+                    showVideoControls={selectedWork.mediaType === 'video'}
+                    autoPlayVideo={false}
+                    mutedVideo={true}
+                  />
+                  {selectedWork.mediaType === 'video' && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
+                        <Play className="text-white" fill="white" size={24} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">{selectedWork.title}</h4>
+                  <p className="text-sm text-gray-400 mb-4 line-clamp-3">
+                    {selectedWork.summary || '説明なし'}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedWork.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <span className="flex items-center gap-1">
+                      {selectedWork.mediaType === 'video' ? (
+                        <FileVideo size={14} />
+                      ) : (
+                        <ImageIcon size={14} />
+                      )}
+                      {selectedWork.mediaType === 'video' ? '動画' : '画像'}
+                    </span>
+                    {selectedWork.visibility === 'private' && (
+                      <span className="text-yellow-400">非公開</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block font-semibold mb-3">
@@ -394,13 +428,20 @@ export default function SubmitPage() {
             )}
           </div>
 
+          {errors.submit && (
+            <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
+              <p className="text-red-400 text-sm">{errors.submit}</p>
+            </div>
+          )}
+
           <div className="pt-6">
             <button
               onClick={handleSubmit}
-              className="w-full bg-red-600 hover:bg-red-700 py-4 rounded-lg font-bold text-lg transition flex items-center justify-center gap-2"
+              disabled={!formData.selectedWorkId}
+              className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed py-4 rounded-lg font-bold text-lg transition flex items-center justify-center gap-2"
             >
               <Trophy size={24} />
-              送信
+              応募する
             </button>
           </div>
         </div>
@@ -411,7 +452,16 @@ export default function SubmitPage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl max-w-md w-full p-8 border border-gray-700">
             <h2 className="text-2xl font-bold mb-4">応募内容の確認</h2>
-            
+
+            {selectedWork && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-400 mb-2">選択された作品</p>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <p className="font-semibold">{selectedWork.title}</p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4 mb-6">
               <div>
                 <p className="text-sm text-gray-400">タイトル</p>
@@ -486,4 +536,3 @@ export default function SubmitPage() {
     </div>
   );
 }
-
