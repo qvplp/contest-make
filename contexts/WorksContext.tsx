@@ -6,7 +6,7 @@ import { CreateWorkInput, Work } from '@/types/works';
 
 interface WorksContextValue {
   userWorks: Work[];
-  createWork: (input: CreateWorkInput) => { success: boolean; error?: string };
+  createWork: (input: CreateWorkInput) => { success: boolean; error?: string; work?: Work };
   updateWork: (workId: string, input: CreateWorkInput) => { success: boolean; error?: string };
   toggleVisibility: (workId: string) => void;
   submitWorkToContest: (workId: string, contestId: string) => { success: boolean; error?: string };
@@ -91,7 +91,7 @@ export function WorksProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-    return { success: true };
+    return { success: true, work: newWork };
   };
 
   const toggleVisibility = (workId: string) => {

@@ -522,7 +522,12 @@ function ContestPostsContent() {
           {displayedPosts.map((post) => (
           <button
             key={post.id}
-            onClick={() => handlePostClick(post)}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handlePostClick(post);
+            }}
             className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition w-full"
           >
             <div className="relative">

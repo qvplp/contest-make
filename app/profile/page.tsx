@@ -314,13 +314,13 @@ export default function ProfilePage() {
             {sortedUserWorks.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {sortedUserWorks.map((work) => (
-                  <button
+                  <div
                     key={work.id}
                     onClick={() => {
                       setSelectedWork(work);
                       setIsViewerOpen(true);
                     }}
-                    className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden hover:ring-2 hover:ring-purple-600 transition text-left w-full"
+                    className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden hover:ring-2 hover:ring-purple-600 transition text-left w-full cursor-pointer"
                   >
                     <div className="relative">
                       <WorkMediaPreview
@@ -360,13 +360,17 @@ export default function ProfilePage() {
                         {work.visibility === 'public' ? '公開中' : '非公開'}
                       </span>
                       <button
-                        onClick={() => toggleVisibility(work.id)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleVisibility(work.id);
+                        }}
                         className="text-purple-400 hover:text-purple-200 font-semibold"
                       >
                         切り替え
                       </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -424,7 +428,14 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-      <WorkSubmitModal isOpen={isWorkModalOpen} onClose={() => setIsWorkModalOpen(false)} />
+      <WorkSubmitModal
+        isOpen={isWorkModalOpen}
+        onClose={() => setIsWorkModalOpen(false)}
+        onSubmitSuccess={(work) => {
+          setSelectedWork(work);
+          setIsViewerOpen(true);
+        }}
+      />
       <WorkViewerModal
         isOpen={isViewerOpen}
         onClose={() => {

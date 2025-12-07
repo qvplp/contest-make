@@ -15,6 +15,7 @@ interface WorkSubmitModalProps {
   onClose: () => void;
   workToEdit?: Work | null;
   onEditSuccess?: () => void;
+  onSubmitSuccess?: (work: Work) => void;
 }
 
 type FormState = {
@@ -47,6 +48,7 @@ export default function WorkSubmitModal({
   onClose,
   workToEdit,
   onEditSuccess,
+  onSubmitSuccess,
 }: WorkSubmitModalProps) {
   const { createWork, updateWork } = useWorks();
   const [isMounted, setIsMounted] = useState(false);
@@ -305,6 +307,9 @@ export default function WorkSubmitModal({
       setTimeout(() => {
         setIsSubmitting(false);
         onClose();
+        if (result.work && onSubmitSuccess) {
+          onSubmitSuccess(result.work);
+        }
       }, 1200);
     }
   };

@@ -61,6 +61,7 @@ export default function WorkViewerModal({ isOpen, onClose, work }: WorkViewerMod
     }
   }, [userWorks, currentWork, user]);
 
+  // 早期リターン: currentWorkがnullの場合は何も表示しない
   if (!isMounted || !isOpen || !currentWork) {
     return null;
   }
