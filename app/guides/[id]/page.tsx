@@ -151,6 +151,8 @@ export default function GuideDetailPage() {
   };
 
   const handleShare = async () => {
+    if (typeof window === 'undefined') return;
+    
     try {
       await navigator.share({
         title: guide?.title,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import {
@@ -42,6 +42,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export default function NewGuidePage() {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const articleIdRef = useRef<string>('');
 
@@ -56,8 +57,7 @@ export default function NewGuidePage() {
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const existingId = params.get('articleId');
+    const existingId = searchParams.get('articleId');
 
     if (existingId) {
       articleIdRef.current = existingId;

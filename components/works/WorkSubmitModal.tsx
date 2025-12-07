@@ -173,6 +173,12 @@ export default function WorkSubmitModal({
       return trimmed;
     }
     try {
+      if (typeof window === 'undefined') {
+        // SSR環境では相対URLを処理できないため、絶対URLのみ処理
+        if (!trimmed.startsWith('http')) {
+          return null;
+        }
+      }
       const url = trimmed.startsWith('http')
         ? new URL(trimmed)
         : new URL(trimmed, window.location.origin);
