@@ -12,7 +12,7 @@ Next.js 16 (App Router) + TypeScript + React 19 で実装されており、コ�
 - **プロフィール機能**: 表示・編集・通知管理
 - **認証機能**: ログイン・新規登録（localStorage モック）
 - **下書き管理**: 自動保存・履歴管理・ページ離脱ガード
-- **審査機能**: 型定義のみ（実装は未完了）
+- **審査機能**: 審査員向けコンテスト一覧・作品審査・ノミネート機能
 
 より詳細な機能一覧は `実装機能一覧.md` を参照してください。
 
@@ -34,6 +34,8 @@ Next.js 16 (App Router) + TypeScript + React 19 で実装されており、コ�
   - `/edit`：プロフィール編集
 - `/login`：ログイン
 - `/signup`：新規登録
+- `/judge/contests`：審査員向けコンテスト一覧
+- `/judge/contests/[contestId]`：審査員向けコンテスト詳細・作品審査
 
 ## ディレクトリ構造（概要）
 
@@ -48,6 +50,8 @@ sousaku-contest/
 │   ├── profile/                  # プロフィール関連
 │   ├── login/                    # ログインページ
 │   ├── signup/                   # 新規登録ページ
+│   ├── judge/                    # 審査員向けページ
+│   │   └── contests/              # コンテスト審査
 │   └── settings/                 # 設定ページ
 ├── components/                   # React コンポーネント
 │   ├── home/                     # ホーム専用セクション群
@@ -135,7 +139,7 @@ npm run lint
 
 ### コア技術
 
-- **フレームワーク**: Next.js 16.0.1 (App Router)
+- **フレームワーク**: Next.js 16.0.7 (App Router)
 - **言語**: TypeScript 5
 - **React**: 19.2.0
 - **スタイリング**: Tailwind CSS 4
@@ -166,6 +170,7 @@ npm run lint
 - **下書き管理**: `localStorage` に自動保存（`draftManager` を使用）
 - **引用データ**: `localStorage` に保存（`guide_citations_{guideId}` 形式）
 - **作品データ**: `WorksContext` で管理（外部リンク情報含む）
+- **ノミネートデータ**: `localStorage` に保存（`judge_nominations_{contestId}` 形式）
 
 ### セキュリティ
 
@@ -191,6 +196,9 @@ npm run lint
   - `/guides/new`, `/guides/new/settings` (記事投稿)
   - `/guides/[id]/cite` (記事引用)
   - `/profile`, `/profile/edit` (プロフィール)
+- **審査員専用ページ**:
+  - `/judge/contests` (審査可能なコンテスト一覧)
+  - `/judge/contests/[contestId]` (コンテスト審査詳細)
 
 ### 外部リンク機能
 
