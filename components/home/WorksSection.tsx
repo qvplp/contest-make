@@ -4,8 +4,10 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Play, ThumbsUp, Eye, Flame, PlusCircle } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
+import { Work } from '@/types/works';
 import WorkSubmitModal from '@/components/works/WorkSubmitModal';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
+import WorkViewerModal from '@/components/works/WorkViewerModal';
 
 const defaultWorks = [
   {
@@ -86,6 +88,8 @@ const WorksSection: React.FC = () => {
   const { userWorks } = useWorks();
   const [activeTab, setActiveTab] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedWork, setSelectedWork] = useState<Work | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const userWorkCards = useMemo(
     () =>
@@ -111,6 +115,47 @@ const WorksSection: React.FC = () => {
       : activeTab === 'new'
       ? combinedWorks.slice(0, 6)
       : combinedWorks;
+
+  // 作品をWork型に変換する関数
+  const convertToWork = (work: typeof filteredWorks[0]): Work | null => {
+    // userWorksから該当する作品を探す
+    const userWork = userWorks.find((w) => w.id === work.id);
+    if (userWork) {
+      return userWork;
+    }
+
+    // defaultWorksの場合はWork型に変換
+    return {
+      id: work.id,
+      title: work.title,
+      authorId: 'unknown',
+      authorName: 'ユーザー',
+      authorAvatar: '/images/avatars/user1.jpg',
+      mediaType: work.mediaType,
+      mediaSource: work.mediaSrc,
+      summary: '',
+      classifications: [],
+      aiModels: [],
+      tags: [],
+      referencedGuideIds: [],
+      isHot: work.isHot,
+      visibility: 'public',
+      createdAt: new Date().toISOString(),
+      stats: {
+        likes: work.likes,
+        comments: 0,
+        views: work.views,
+      },
+    };
+  };
+
+  const handleWorkClick = (work: typeof filteredWorks[0]) => {
+    const convertedWork = convertToWork(work);
+    if (convertedWork) {
+      setSelectedWork(convertedWork);
+      setIsViewerOpen(true);
+    }
+  };
 
   return (
     <section className="mb-8 sm:mb-12 lg:mb-16">
@@ -166,8 +211,12 @@ const WorksSection: React.FC = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
         {filteredWorks.map((work) => (
-          <Link key={work.id} href={`/contest-posts/${work.id}`}>
-            <div className="relative group cursor-pointer">
+          <button
+            key={work.id}
+            type="button"
+            onClick={() => handleWorkClick(work)}
+            className="relative group cursor-pointer w-full text-left"
+          >
               <WorkMediaPreview
                 mediaType={work.mediaType}
                 src={work.mediaSrc}
@@ -209,12 +258,19 @@ const WorksSection: React.FC = () => {
                   </>
                 }
               />
-            </div>
-          </Link>
+          </button>
         ))}
       </div>
 
       <WorkSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <WorkViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setSelectedWork(null);
+        }}
+        work={selectedWork}
+      />
     </section>
   );
 };
