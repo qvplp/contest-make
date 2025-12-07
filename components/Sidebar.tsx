@@ -8,8 +8,6 @@ import {
   Home,
   Trophy,
   Lightbulb,
-  Image as ImageIcon,
-  PenTool,
   Settings,
   HelpCircle,
   X,
@@ -40,8 +38,6 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
     { href: '/', icon: Home, label: 'ホーム' },
     { href: '/contests', icon: Trophy, label: 'コンテスト' },
     { href: '/guides', icon: Lightbulb, label: '攻略・使い方' },
-    { href: '/gallery', icon: ImageIcon, label: 'ギャラリー' },
-    { href: '/create', icon: PenTool, label: '作成' },
   ];
 
   const bottomItems = [
