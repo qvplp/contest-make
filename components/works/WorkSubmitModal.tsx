@@ -2,15 +2,19 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Upload, Eye, Shield, Link2, FileVideo } from 'lucide-react';
+import { X, Upload, Eye, Shield, Link2, FileVideo, Youtube } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
 import { AI_MODEL_OPTIONS, CLASSIFICATION_OPTIONS } from '@/constants/taxonomies';
 import { AIModel, Classification } from '@/types/guideForm';
+import { ExternalLink, Work } from '@/types/works';
+import { validateExternalLink } from '@/utils/externalLinks';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 interface WorkSubmitModalProps {
   isOpen: boolean;
   onClose: () => void;
+  workToEdit?: Work | null;
+  onEditSuccess?: () => void;
 }
 
 type FormState = {
@@ -38,8 +42,13 @@ const initialFormState: FormState = {
   visibility: 'public',
 };
 
-export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProps) {
-  const { createWork } = useWorks();
+export default function WorkSubmitModal({
+  isOpen,
+  onClose,
+  workToEdit,
+  onEditSuccess,
+}: WorkSubmitModalProps) {
+  const { createWork, updateWork } = useWorks();
   const [isMounted, setIsMounted] = useState(false);
   const [formState, setFormState] = useState<FormState>(initialFormState);
   const [mediaPreview, setMediaPreview] = useState<string>('');
@@ -47,9 +56,14 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
   const [references, setReferences] = useState<ReferenceItem[]>([]);
   const [referenceInput, setReferenceInput] = useState('');
   const [referenceError, setReferenceError] = useState<string | null>(null);
+  const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
+  const [externalLinkInput, setExternalLinkInput] = useState('');
+  const [externalLinkError, setExternalLinkError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const isEditMode = !!workToEdit;
 
   useEffect(() => {
     setIsMounted(true);
@@ -63,11 +77,30 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
       setReferences([]);
       setReferenceInput('');
       setReferenceError(null);
+      setExternalLinks([]);
+      setExternalLinkInput('');
+      setExternalLinkError(null);
       setIsSubmitting(false);
       setError(null);
       setSuccess(null);
+    } else if (workToEdit) {
+      // 編集モード: 既存の作品データをフォームに設定
+      setFormState({
+        title: workToEdit.title,
+        summary: workToEdit.summary,
+        mediaType: workToEdit.mediaType,
+        classifications: workToEdit.classifications,
+        aiModels: workToEdit.aiModels,
+        tags: workToEdit.tags,
+        visibility: workToEdit.visibility,
+      });
+      setMediaPreview(workToEdit.mediaSource);
+      setReferences(
+        workToEdit.referencedGuideIds?.map((id) => ({ id, url: `/guides/${id}` })) || [],
+      );
+      setExternalLinks(workToEdit.externalLinks || []);
     }
-  }, [isOpen]);
+  }, [isOpen, workToEdit]);
 
   const handleMediaChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -173,6 +206,41 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
     setReferences((prev) => prev.filter((ref) => ref.id !== id));
   };
 
+  const handleAddExternalLink = () => {
+    const trimmed = externalLinkInput.trim();
+    if (!trimmed) {
+      setExternalLinkError('URLを入力してください');
+      return;
+    }
+
+    // YouTube URLのバリデーション
+    const validation = validateExternalLink(trimmed, ['youtube']);
+    if (!validation.valid || !validation.type) {
+      setExternalLinkError(validation.error || '有効なYouTube URLを入力してください');
+      return;
+    }
+
+    // 重複チェック
+    if (externalLinks.some((link) => link.url === trimmed)) {
+      setExternalLinkError('同じURLがすでに追加されています');
+      return;
+    }
+
+    const newLink: ExternalLink = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `link_${Date.now()}`,
+      type: validation.type,
+      url: trimmed,
+    };
+
+    setExternalLinks((prev) => [...prev, newLink]);
+    setExternalLinkInput('');
+    setExternalLinkError(null);
+  };
+
+  const removeExternalLink = (id: string) => {
+    setExternalLinks((prev) => prev.filter((link) => link.id !== id));
+  };
+
   const isValid = useMemo(() => {
     const hasTitle = formState.title.trim().length > 0;
     const hasMedia = Boolean(mediaPreview);
@@ -190,7 +258,7 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
     setError(null);
     setSuccess(null);
 
-    const result = createWork({
+    const workData = {
       title: formState.title.trim(),
       summary: formState.summary.trim(),
       mediaType: formState.mediaType,
@@ -202,19 +270,37 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
       tags: formState.tags,
       visibility: formState.visibility,
       referencedGuideIds: references.map((ref) => ref.id),
-    });
+      externalLinks: externalLinks.length > 0 ? externalLinks : undefined,
+    };
 
-    if (!result.success) {
-      setError(result.error || '投稿に失敗しました');
-      setIsSubmitting(false);
-      return;
+    if (isEditMode && workToEdit) {
+      const result = updateWork(workToEdit.id, workData);
+      if (!result.success) {
+        setError(result.error || '編集に失敗しました');
+        setIsSubmitting(false);
+        return;
+      }
+      setSuccess('作品を編集しました');
+      setTimeout(() => {
+        setIsSubmitting(false);
+        onClose();
+        if (onEditSuccess) {
+          onEditSuccess();
+        }
+      }, 1200);
+    } else {
+      const result = createWork(workData);
+      if (!result.success) {
+        setError(result.error || '投稿に失敗しました');
+        setIsSubmitting(false);
+        return;
+      }
+      setSuccess('作品を投稿しました');
+      setTimeout(() => {
+        setIsSubmitting(false);
+        onClose();
+      }, 1200);
     }
-
-    setSuccess('作品を投稿しました');
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onClose();
-    }, 1200);
   };
 
   if (!isMounted || !isOpen) {
@@ -226,8 +312,8 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
       <div className="w-full max-w-4xl bg-gray-900 rounded-2xl border border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
           <div>
-            <p className="text-sm text-gray-400">作品投稿フォーム</p>
-            <h2 className="text-2xl font-bold">新しい作品を投稿</h2>
+            <p className="text-sm text-gray-400">{isEditMode ? '作品編集フォーム' : '作品投稿フォーム'}</p>
+            <h2 className="text-2xl font-bold">{isEditMode ? '作品を編集' : '新しい作品を投稿'}</h2>
           </div>
           <button
             onClick={onClose}
@@ -424,6 +510,12 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
                   type="text"
                   value={referenceInput}
                   onChange={(e) => setReferenceInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddReference();
+                    }
+                  }}
                   className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
                   placeholder="攻略記事のURLまたはID（例: https://.../guides/123）"
                 />
@@ -451,6 +543,54 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 参考にした攻略記事を追加すると、各記事の「引用された作品」セクションに表示されます。
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                <Youtube size={16} className="text-red-500" />
+                YouTubeリンク（任意）
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={externalLinkInput}
+                  onChange={(e) => setExternalLinkInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddExternalLink();
+                    }
+                  }}
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  placeholder="YouTube URL（例: https://www.youtube.com/watch?v=...）"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddExternalLink}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold flex items-center gap-2 transition"
+                >
+                  <Youtube size={16} />
+                  追加
+                </button>
+              </div>
+              {externalLinkError && <p className="text-sm text-red-400">{externalLinkError}</p>}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {externalLinks.map((link) => (
+                  <span
+                    key={link.id}
+                    className="flex items-center gap-2 bg-red-900/30 text-red-200 px-3 py-1 rounded-full text-xs border border-red-700/50"
+                  >
+                    <Youtube size={12} />
+                    {link.url.length > 40 ? `${link.url.substring(0, 40)}...` : link.url}
+                    <button onClick={() => removeExternalLink(link.id)}>
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                YouTubeなどの外部リンクを追加できます。複数のリンクを追加可能です。
               </p>
             </div>
 
@@ -482,7 +622,7 @@ export default function WorkSubmitModal({ isOpen, onClose }: WorkSubmitModalProp
               disabled={!isValid || isSubmitting}
               className="px-6 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 font-semibold transition flex items-center gap-2"
             >
-              投稿する
+              {isSubmitting ? (isEditMode ? '編集中...' : '投稿中...') : isEditMode ? '編集を保存' : '投稿する'}
             </button>
           </div>
         </div>

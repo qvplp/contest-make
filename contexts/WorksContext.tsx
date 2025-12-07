@@ -7,6 +7,7 @@ import { CreateWorkInput, Work } from '@/types/works';
 interface WorksContextValue {
   userWorks: Work[];
   createWork: (input: CreateWorkInput) => { success: boolean; error?: string };
+  updateWork: (workId: string, input: CreateWorkInput) => { success: boolean; error?: string };
   toggleVisibility: (workId: string) => void;
   submitWorkToContest: (workId: string, contestId: string) => { success: boolean; error?: string };
 }
@@ -77,6 +78,7 @@ export function WorksProvider({ children }: { children: React.ReactNode }) {
         comments: 0,
         views: 0,
       },
+      externalLinks: input.externalLinks,
     };
 
     setUserWorks((prev) => {
@@ -120,6 +122,59 @@ export function WorksProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const updateWork = (workId: string, input: CreateWorkInput) => {
+    if (!user) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    setUserWorks((prev) => {
+      const normalizedList = prev.map(normalizeWork);
+      const existingWork = normalizedList.find((w) => w.id === workId);
+      if (!existingWork) {
+        return prev;
+      }
+
+      if (existingWork.authorId !== user.id) {
+        return { success: false, error: 'この作品を編集する権限がありません' };
+      }
+
+      const wasPublic = existingWork.visibility === 'public';
+      const willBePublic = input.visibility === 'public';
+
+      const updatedWork: Work = {
+        ...existingWork,
+        title: input.title,
+        summary: input.summary,
+        mediaType: input.mediaType,
+        mediaSource: input.mediaSource,
+        classifications: input.classifications,
+        aiModels: input.classifications.includes('AIモデル') ? input.aiModels : [],
+        tags: input.tags,
+        referencedGuideIds: input.referencedGuideIds,
+        visibility: input.visibility,
+        externalLinks: input.externalLinks,
+      };
+
+      const next = normalizedList.map((w) => (w.id === workId ? updatedWork : w));
+      persist(next);
+
+      // 公開状態の変更に応じて引用を更新
+      if (wasPublic && !willBePublic) {
+        removeWorkFromGuideCitations(existingWork);
+      } else if (!wasPublic && willBePublic) {
+        addWorkToGuideCitations(updatedWork);
+      } else if (willBePublic) {
+        // 公開中の場合、引用を更新
+        removeWorkFromGuideCitations(existingWork);
+        addWorkToGuideCitations(updatedWork);
+      }
+
+      return next;
+    });
+
+    return { success: true };
+  };
+
   const submitWorkToContest = (workId: string, contestId: string) => {
     if (!user) {
       return { success: false, error: 'ログインが必要です' };
@@ -152,7 +207,7 @@ export function WorksProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <WorksContext.Provider value={{ userWorks, createWork, toggleVisibility, submitWorkToContest }}>
+    <WorksContext.Provider value={{ userWorks, createWork, updateWork, toggleVisibility, submitWorkToContest }}>
       {children}
     </WorksContext.Provider>
   );
@@ -192,6 +247,7 @@ function normalizeWork(work: any): Work {
       views: work.stats?.views ?? 0,
     },
     contestId: work.contestId,
+    externalLinks: Array.isArray(work.externalLinks) ? work.externalLinks : undefined,
   };
 }
 

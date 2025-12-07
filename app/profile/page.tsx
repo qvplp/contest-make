@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -21,8 +21,10 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
+import { Work } from '@/types/works';
 import WorkSubmitModal from '@/components/works/WorkSubmitModal';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
+import WorkViewerModal from '@/components/works/WorkViewerModal';
 
 interface Badge {
   id: number;
@@ -57,6 +59,8 @@ interface UserGuide {
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'guides' | 'posts' | 'notifications'>('guides');
   const [isWorkModalOpen, setIsWorkModalOpen] = useState(false);
+  const [selectedWork, setSelectedWork] = useState<Work | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userWorks, toggleVisibility } = useWorks();
 
   const userProfile = {
@@ -107,6 +111,16 @@ export default function ProfilePage() {
       ),
     [userWorks],
   );
+
+  // 編集後に最新の作品データを取得
+  useEffect(() => {
+    if (selectedWork && !isViewerOpen) {
+      const updatedWork = userWorks.find((w) => w.id === selectedWork.id);
+      if (updatedWork) {
+        setSelectedWork(updatedWork);
+      }
+    }
+  }, [userWorks, isViewerOpen, selectedWork]);
 
   const notifications: Notification[] = [
     { id: 1, type: 'like', title: 'いいねを獲得しました', message: 'あなたの作品「ハロウィンの魔女」が100いいねを獲得しました', icon: '🔥', isRead: false, createdAt: '2025-10-31T08:00:00Z', link: '/contest-posts/1' },
@@ -301,7 +315,14 @@ export default function ProfilePage() {
             {sortedUserWorks.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {sortedUserWorks.map((work) => (
-                  <div key={work.id} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                  <button
+                    key={work.id}
+                    onClick={() => {
+                      setSelectedWork(work);
+                      setIsViewerOpen(true);
+                    }}
+                    className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden hover:ring-2 hover:ring-purple-600 transition text-left w-full"
+                  >
                     <div className="relative">
                       <WorkMediaPreview
                         mediaType={work.mediaType}
@@ -346,7 +367,7 @@ export default function ProfilePage() {
                         切り替え
                       </button>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -405,6 +426,14 @@ export default function ProfilePage() {
         )}
       </div>
       <WorkSubmitModal isOpen={isWorkModalOpen} onClose={() => setIsWorkModalOpen(false)} />
+      <WorkViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setSelectedWork(null);
+        }}
+        work={selectedWork}
+      />
     </div>
   );
 }

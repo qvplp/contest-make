@@ -4,24 +4,28 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorks } from '@/contexts/WorksContext';
+import { getContestBySlug } from '@/types/contests';
+import { ExternalLink } from '@/types/works';
+import { validateExternalLink } from '@/utils/externalLinks';
 import {
   X,
   Check,
   AlertCircle,
   Trophy,
   Search,
-  Play,
   FileVideo,
   Image as ImageIcon,
+  Youtube,
 } from 'lucide-react';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
 interface FormData {
-  selectedWorkId: string | null;
+  selectedWorkIds: string[];
   title: string;
   description: string;
   categories: string[];
   division: string;
+  externalLinks: ExternalLink[];
 }
 
 export default function SubmitPage() {
@@ -29,15 +33,28 @@ export default function SubmitPage() {
   const { userWorks, submitWorkToContest } = useWorks();
   const router = useRouter();
 
+  const contest = getContestBySlug('halloween2025');
+  const submissionSettings = contest?.submissionSettings || {
+    allowedFormats: ['all'],
+    maxVideoFiles: 3,
+    maxVideoTotalSizeMB: 10,
+    allowedExternalLinkTypes: ['youtube'],
+    maxExternalLinks: 10,
+    maxSelectedWorks: 1,
+  };
+
   const [formData, setFormData] = useState<FormData>({
-    selectedWorkId: null,
+    selectedWorkIds: [],
     title: '',
     description: '',
     categories: [],
     division: '',
+    externalLinks: [],
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [externalLinkInput, setExternalLinkInput] = useState('');
+  const [externalLinkError, setExternalLinkError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -71,21 +88,50 @@ export default function SubmitPage() {
     });
   }, [userWorks, searchQuery]);
 
-  const selectedWork = useMemo(() => {
-    if (!formData.selectedWorkId) return null;
-    return userWorks.find((work) => work.id === formData.selectedWorkId) || null;
-  }, [userWorks, formData.selectedWorkId]);
+  const selectedWorks = useMemo(() => {
+    return userWorks.filter((work) => formData.selectedWorkIds.includes(work.id));
+  }, [userWorks, formData.selectedWorkIds]);
 
-  // 作品選択時にタイトルと説明を自動入力
+  // 作品選択時にタイトルと説明を自動入力（最初の作品のみ）
   useEffect(() => {
-    if (selectedWork) {
+    if (selectedWorks.length > 0 && !formData.title) {
+      const firstWork = selectedWorks[0];
       setFormData((prev) => ({
         ...prev,
-        title: prev.title || selectedWork.title,
-        description: prev.description || selectedWork.summary,
+        title: prev.title || firstWork.title,
+        description: prev.description || firstWork.summary,
       }));
     }
-  }, [selectedWork]);
+  }, [selectedWorks]);
+
+  const toggleWorkSelection = (workId: string) => {
+    setFormData((prev) => {
+      const isSelected = prev.selectedWorkIds.includes(workId);
+      const newSelectedIds = isSelected
+        ? prev.selectedWorkIds.filter((id) => id !== workId)
+        : [...prev.selectedWorkIds, workId];
+
+      // 最大選択数のチェック
+      if (!isSelected && newSelectedIds.length > submissionSettings.maxSelectedWorks) {
+        setErrors((prev) => ({
+          ...prev,
+          selectedWorkIds: `作品は最大${submissionSettings.maxSelectedWorks}件まで選択可能です`,
+        }));
+        return prev;
+      }
+
+      // エラーをクリア
+      setErrors((prev) => {
+        const { selectedWorkIds, ...rest } = prev;
+        return rest;
+      });
+
+      return {
+        ...prev,
+        selectedWorkIds: newSelectedIds,
+      };
+    });
+  };
 
   const toggleCategory = (category: string) => {
     setFormData((prev) => ({
@@ -96,11 +142,64 @@ export default function SubmitPage() {
     }));
   };
 
+  const handleAddExternalLink = () => {
+    const trimmed = externalLinkInput.trim();
+    if (!trimmed) {
+      setExternalLinkError('URLを入力してください');
+      return;
+    }
+
+    // 外部リンクのバリデーション
+    const validation = validateExternalLink(trimmed, submissionSettings.allowedExternalLinkTypes);
+    if (!validation.valid || !validation.type) {
+      setExternalLinkError(validation.error || '有効なURLを入力してください');
+      return;
+    }
+
+    // 最大数チェック
+    if (formData.externalLinks.length >= submissionSettings.maxExternalLinks) {
+      setExternalLinkError(`外部リンクは最大${submissionSettings.maxExternalLinks}個まで追加可能です`);
+      return;
+    }
+
+    // 重複チェック
+    if (formData.externalLinks.some((link) => link.url === trimmed)) {
+      setExternalLinkError('同じURLがすでに追加されています');
+      return;
+    }
+
+    const newLink: ExternalLink = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `link_${Date.now()}`,
+      type: validation.type,
+      url: trimmed,
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      externalLinks: [...prev.externalLinks, newLink],
+    }));
+    setExternalLinkInput('');
+    setExternalLinkError(null);
+  };
+
+  const removeExternalLink = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      externalLinks: prev.externalLinks.filter((link) => link.id !== id),
+    }));
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.selectedWorkId) {
-      newErrors.selectedWorkId = '作品を選択してください';
+    // 投稿済み作品の選択が必須
+    if (formData.selectedWorkIds.length === 0) {
+      newErrors.selectedWorkIds = '投稿済み作品を1つ以上選択してください';
+    }
+
+    // 最大選択数のチェック
+    if (formData.selectedWorkIds.length > submissionSettings.maxSelectedWorks) {
+      newErrors.selectedWorkIds = `作品は最大${submissionSettings.maxSelectedWorks}件まで選択可能です`;
     }
 
     if (!formData.title.trim()) {
@@ -131,18 +230,21 @@ export default function SubmitPage() {
   };
 
   const confirmSubmit = async () => {
-    if (!formData.selectedWorkId) return;
+    if (formData.selectedWorkIds.length === 0) {
+      return;
+    }
 
     setIsSubmitting(true);
 
-    // 作品をコンテストに応募
-    const result = submitWorkToContest(formData.selectedWorkId, 'halloween2025');
-
-    if (!result.success) {
-      setErrors({ submit: result.error || '応募に失敗しました' });
-      setIsSubmitting(false);
-      setShowConfirmModal(false);
-      return;
+    // 複数の作品をコンテストに応募
+    for (const workId of formData.selectedWorkIds) {
+      const result = submitWorkToContest(workId, 'halloween2025');
+      if (!result.success) {
+        setErrors({ submit: result.error || '応募に失敗しました' });
+        setIsSubmitting(false);
+        setShowConfirmModal(false);
+        return;
+      }
     }
 
     setTimeout(() => {
@@ -178,7 +280,7 @@ export default function SubmitPage() {
               <ul className="text-sm text-gray-300 space-y-1">
                 <li>• オリジナル作品であること</li>
                 <li>• 作品の70%以上がAnimeHubで作成されていること</li>
-                <li>• 動画は10秒〜5分、最大300MB</li>
+                <li>• 投稿済み作品から最大{submissionSettings.maxSelectedWorks}件まで選択可能</li>
                 <li>• 音声はオリジナルまたはライセンス取得済みであること</li>
               </ul>
             </div>
@@ -190,6 +292,11 @@ export default function SubmitPage() {
           <div>
             <label className="block font-semibold mb-3 text-lg">
               応募する作品を選択 <span className="text-red-500">*</span>
+              {submissionSettings.maxSelectedWorks > 1 && (
+                <span className="text-sm font-normal text-gray-400 ml-2">
+                  （最大{submissionSettings.maxSelectedWorks}件まで選択可）
+                </span>
+              )}
             </label>
 
             {availableWorks.length === 0 ? (
@@ -220,111 +327,150 @@ export default function SubmitPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-2">
-                  {availableWorks.map((work) => (
-                    <button
-                      key={work.id}
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          selectedWorkId: prev.selectedWorkId === work.id ? null : work.id,
-                        }))
-                      }
-                      className={`relative rounded-lg overflow-hidden border-2 transition ${
-                        formData.selectedWorkId === work.id
-                          ? 'border-purple-600 ring-2 ring-purple-600'
-                          : 'border-gray-700 hover:border-gray-600'
-                      }`}
-                    >
-                      <WorkMediaPreview
-                        mediaType={work.mediaType}
-                        src={work.mediaSource}
-                        aspectRatio="16/9"
-                        className="rounded-none"
-                      />
-                      {formData.selectedWorkId === work.id && (
-                        <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1.5">
-                          <Check size={16} className="text-white" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 hover:opacity-100 transition">
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
-                            {work.title}
-                          </h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-300">
-                            {work.mediaType === 'video' ? (
-                              <FileVideo size={12} />
-                            ) : (
-                              <ImageIcon size={12} />
-                            )}
-                            <span>{work.mediaType === 'video' ? '動画' : '画像'}</span>
-                            {work.visibility === 'private' && (
-                              <span className="text-yellow-400">非公開</span>
-                            )}
+                  {availableWorks.map((work) => {
+                    const isSelected = formData.selectedWorkIds.includes(work.id);
+                    const isMaxReached = formData.selectedWorkIds.length >= submissionSettings.maxSelectedWorks;
+                    const canSelect = isSelected || !isMaxReached;
+                    return (
+                      <button
+                        key={work.id}
+                        onClick={() => toggleWorkSelection(work.id)}
+                        disabled={!canSelect}
+                        className={`relative rounded-lg overflow-hidden border-2 transition ${
+                          isSelected
+                            ? 'border-purple-600 ring-2 ring-purple-600'
+                            : canSelect
+                              ? 'border-gray-700 hover:border-gray-600'
+                              : 'border-gray-700 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <WorkMediaPreview
+                          mediaType={work.mediaType}
+                          src={work.mediaSource}
+                          aspectRatio="16/9"
+                          className="rounded-none"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-purple-600 rounded-full p-1.5">
+                            <Check size={16} className="text-white" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 hover:opacity-100 transition">
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
+                              {work.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-xs text-gray-300">
+                              {work.mediaType === 'video' ? (
+                                <FileVideo size={12} />
+                              ) : (
+                                <ImageIcon size={12} />
+                              )}
+                              <span>{work.mediaType === 'video' ? '動画' : '画像'}</span>
+                              {work.visibility === 'private' && (
+                                <span className="text-yellow-400">非公開</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
-                {errors.selectedWorkId && (
-                  <p className="text-red-400 text-sm mt-2">{errors.selectedWorkId}</p>
+                {formData.selectedWorkIds.length > 0 && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    {formData.selectedWorkIds.length}/{submissionSettings.maxSelectedWorks}件の作品を選択中
+                  </p>
+                )}
+                {errors.selectedWorkIds && (
+                  <p className="text-red-400 text-sm mt-2">{errors.selectedWorkIds}</p>
                 )}
               </>
             )}
           </div>
 
+          {/* 外部リンクセクション */}
+          <div>
+            <label className="block font-semibold mb-3 text-lg flex items-center gap-2">
+              <Youtube className="text-red-500" size={20} />
+              YouTubeリンク <span className="text-sm font-normal text-gray-400">（任意、最大{submissionSettings.maxExternalLinks}個）</span>
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={externalLinkInput}
+                onChange={(e) => setExternalLinkInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddExternalLink();
+                  }
+                }}
+                placeholder="YouTube URL（例: https://www.youtube.com/watch?v=...）"
+                className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                disabled={formData.externalLinks.length >= submissionSettings.maxExternalLinks}
+              />
+              <button
+                type="button"
+                onClick={handleAddExternalLink}
+                disabled={formData.externalLinks.length >= submissionSettings.maxExternalLinks}
+                className="px-4 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold flex items-center gap-2 transition"
+              >
+                <Youtube size={16} />
+                追加
+              </button>
+            </div>
+            {externalLinkError && <p className="text-sm text-red-400 mb-2">{externalLinkError}</p>}
+            {formData.externalLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.externalLinks.map((link) => (
+                  <span
+                    key={link.id}
+                    className="flex items-center gap-2 bg-red-900/30 text-red-200 px-3 py-2 rounded-lg text-sm border border-red-700/50"
+                  >
+                    <Youtube size={14} />
+                    {link.url.length > 50 ? `${link.url.substring(0, 50)}...` : link.url}
+                    <button
+                      onClick={() => removeExternalLink(link.id)}
+                      className="ml-1 hover:text-red-400 transition"
+                      aria-label="削除"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 選択された作品のプレビュー */}
-          {selectedWork && (
+          {selectedWorks.length > 0 && (
             <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
-              <h3 className="font-semibold mb-4">選択された作品</h3>
+              <h3 className="font-semibold mb-4">選択された作品 ({selectedWorks.length}件)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="relative rounded-lg overflow-hidden">
-                  <WorkMediaPreview
-                    mediaType={selectedWork.mediaType}
-                    src={selectedWork.mediaSource}
-                    aspectRatio="16/9"
-                    showVideoControls={selectedWork.mediaType === 'video'}
-                    autoPlayVideo={false}
-                    mutedVideo={true}
-                  />
-                  {selectedWork.mediaType === 'video' && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-12 h-12 bg-black/70 rounded-full flex items-center justify-center">
-                        <Play className="text-white" fill="white" size={24} />
-                      </div>
+                {selectedWorks.map((work) => (
+                  <div key={work.id} className="flex gap-3">
+                    <div className="relative rounded-lg overflow-hidden flex-shrink-0 w-24 h-24">
+                      <WorkMediaPreview
+                        mediaType={work.mediaType}
+                        src={work.mediaSource}
+                        aspectRatio="1/1"
+                        className="rounded-lg"
+                      />
                     </div>
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">{selectedWork.title}</h4>
-                  <p className="text-sm text-gray-400 mb-4 line-clamp-3">
-                    {selectedWork.summary || '説明なし'}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedWork.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm mb-1 truncate">{work.title}</h4>
+                      <p className="text-xs text-gray-400 line-clamp-2">{work.summary || '説明なし'}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleWorkSelection(work.id)}
+                      className="text-gray-400 hover:text-red-400 transition"
+                      aria-label="選択解除"
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span className="flex items-center gap-1">
-                      {selectedWork.mediaType === 'video' ? (
-                        <FileVideo size={14} />
-                      ) : (
-                        <ImageIcon size={14} />
-                      )}
-                      {selectedWork.mediaType === 'video' ? '動画' : '画像'}
-                    </span>
-                    {selectedWork.visibility === 'private' && (
-                      <span className="text-yellow-400">非公開</span>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
@@ -437,7 +583,7 @@ export default function SubmitPage() {
           <div className="pt-6">
             <button
               onClick={handleSubmit}
-              disabled={!formData.selectedWorkId}
+              disabled={formData.selectedWorkIds.length === 0}
               className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed py-4 rounded-lg font-bold text-lg transition flex items-center justify-center gap-2"
             >
               <Trophy size={24} />
@@ -450,14 +596,31 @@ export default function SubmitPage() {
       {/* 確認モーダル */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-8 border border-gray-700">
+          <div className="bg-gray-900 rounded-2xl max-w-md w-full p-8 border border-gray-700 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">応募内容の確認</h2>
 
-            {selectedWork && (
+            {selectedWorks.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm text-gray-400 mb-2">選択された作品</p>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <p className="font-semibold">{selectedWork.title}</p>
+                <p className="text-sm text-gray-400 mb-2">選択された作品 ({selectedWorks.length}件)</p>
+                <div className="space-y-2">
+                  {selectedWorks.map((work) => (
+                    <div key={work.id} className="bg-gray-800 rounded-lg p-3">
+                      <p className="font-semibold text-sm">{work.title}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {formData.externalLinks.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-400 mb-2">外部リンク ({formData.externalLinks.length}個)</p>
+                <div className="space-y-2">
+                  {formData.externalLinks.map((link) => (
+                    <div key={link.id} className="bg-gray-800 rounded-lg p-3">
+                      <p className="font-semibold text-sm truncate">{link.url}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

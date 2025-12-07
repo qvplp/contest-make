@@ -30,6 +30,7 @@ export default function WorkMediaPreview({
 }: WorkMediaPreviewProps) {
   const [widthRatio, heightRatio] = aspectRatio.split('/').map(Number);
   const paddingBottom = `${(heightRatio / widthRatio) * 100}%`;
+  const isGif = src.toLowerCase().endsWith('.gif');
 
   return (
     <div
@@ -37,7 +38,7 @@ export default function WorkMediaPreview({
       style={{ paddingBottom }}
     >
       <div className="absolute inset-0">
-        {mediaType === 'image' ? (
+        {mediaType === 'image' && !isGif ? (
           <Image
             src={src}
             alt="work-media"
@@ -46,6 +47,13 @@ export default function WorkMediaPreview({
             sizes={sizes}
             className="object-cover object-center"
             unoptimized={src.startsWith('data:')}
+          />
+        ) : isGif ? (
+          <img
+            src={src}
+            alt="work-media"
+            className="w-full h-full object-cover object-center"
+            style={{ display: 'block' }}
           />
         ) : (
           <video

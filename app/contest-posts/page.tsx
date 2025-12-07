@@ -16,7 +16,10 @@ import {
   Flame,
 } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Work } from '@/types/works';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
+import WorkViewerModal from '@/components/works/WorkViewerModal';
 
 type Classification = 
   | 'HOT' 
@@ -69,7 +72,10 @@ function ContestPostsContent() {
   const [showAIModelDropdown, setShowAIModelDropdown] = useState(false);
   const [displayedPosts, setDisplayedPosts] = useState<ContestPost[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [selectedWork, setSelectedWork] = useState<Work | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userWorks } = useWorks();
+  const { user } = useAuth();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -303,6 +309,46 @@ function ContestPostsContent() {
     router.push(`/contest-posts?${params.toString()}`, { scroll: false });
   };
 
+  // ContestPostをWorkに変換
+  const convertPostToWork = (post: ContestPost): Work => {
+    // userWorksから該当する作品を探す
+    const userWork = userWorks.find((w) => w.id === post.id);
+    if (userWork) {
+      return userWork;
+    }
+
+    // モックデータの場合はWork型に変換
+    return {
+      id: post.id,
+      title: post.title,
+      authorId: 'unknown',
+      authorName: post.author,
+      authorAvatar: post.authorAvatar,
+      mediaType: post.type,
+      mediaSource: post.mediaSrc,
+      summary: '',
+      classifications: post.classifications,
+      aiModels: post.aiModels,
+      tags: [],
+      referencedGuideIds: [],
+      isHot: post.isHot,
+      visibility: 'public',
+      createdAt: post.createdAt,
+      stats: {
+        likes: post.likes,
+        comments: post.comments,
+        views: post.views,
+      },
+      contestId: post.contest !== 'user' ? post.contest : undefined,
+    };
+  };
+
+  const handlePostClick = (post: ContestPost) => {
+    const work = convertPostToWork(post);
+    setSelectedWork(work);
+    setIsViewerOpen(true);
+  };
+
   const userContestPosts = useMemo<ContestPost[]>(
     () =>
       userWorks
@@ -474,7 +520,11 @@ function ContestPostsContent() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {displayedPosts.map((post) => (
-          <Link key={post.id} href={`/contest-posts/${post.id}`} className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition">
+          <button
+            key={post.id}
+            onClick={() => handlePostClick(post)}
+            className="relative group cursor-pointer overflow-hidden rounded-lg bg-gray-800 hover:scale-105 transition w-full"
+          >
             <div className="relative">
               <WorkMediaPreview
                 mediaType={post.type}
@@ -505,7 +555,7 @@ function ContestPostsContent() {
                 </div>
               </div>
             </div>
-            </Link>
+            </button>
           ))}
         </div>
 
@@ -526,6 +576,16 @@ function ContestPostsContent() {
           <div className="text-center py-8 text-gray-400">すべての作品を読み込みました</div>
         )}
       </div>
+
+      {/* 作品ビュワーモーダル */}
+      <WorkViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setSelectedWork(null);
+        }}
+        work={selectedWork}
+      />
     </div>
   );
 }

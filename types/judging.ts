@@ -39,3 +39,4 @@ export interface CategoryNominations {
   works: JudgingWork[];
 }
 
+

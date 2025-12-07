@@ -9,6 +9,16 @@ export interface WorkStats {
   views: number;
 }
 
+/**
+ * 外部リンク情報
+ */
+export interface ExternalLink {
+  id: string;
+  type: 'youtube' | 'vimeo' | 'nicovideo' | 'other';
+  url: string;
+  title?: string; // オプション: リンクのタイトル
+}
+
 export interface Work {
   id: string;
   title: string;
@@ -27,6 +37,8 @@ export interface Work {
   createdAt: string;
   stats: WorkStats;
   contestId?: string;
+  // 外部リンク（YouTubeなど）
+  externalLinks?: ExternalLink[];
 }
 
 export interface CreateWorkInput {
@@ -39,6 +51,7 @@ export interface CreateWorkInput {
   tags: string[];
   visibility: WorkVisibility;
   referencedGuideIds: string[];
+  externalLinks?: ExternalLink[];
 }
 
 

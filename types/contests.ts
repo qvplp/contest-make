@@ -2,6 +2,34 @@
  * コンテスト情報の型定義と定数
  */
 
+/**
+ * 応募形式の種類
+ */
+export type SubmissionFormat = 'video_only' | 'external_link_only' | 'video_and_external' | 'all';
+
+/**
+ * 外部リンクの種類（将来的に拡張可能）
+ */
+export type ExternalLinkType = 'youtube' | 'vimeo' | 'nicovideo' | 'other';
+
+/**
+ * コンテストの応募設定
+ */
+export interface ContestSubmissionSettings {
+  // 許可される応募形式
+  allowedFormats: SubmissionFormat[];
+  // 動画ファイルの最大アップロード数
+  maxVideoFiles: number;
+  // 動画ファイルの合計サイズ制限（MB）
+  maxVideoTotalSizeMB: number;
+  // 許可される外部リンクの種類
+  allowedExternalLinkTypes: ExternalLinkType[];
+  // 外部リンクの最大数
+  maxExternalLinks: number;
+  // 投稿済み作品から選択できる最大数（デフォルト: 1）
+  maxSelectedWorks: number;
+}
+
 export interface ContestInfo {
   id: string;
   title: string;
@@ -20,6 +48,8 @@ export interface ContestInfo {
   reviewStartDate?: string; // 審査開始日
   reviewEndDate?: string; // 審査終了日
   resultAnnouncementDate?: string; // 結果発表日
+  // 応募設定
+  submissionSettings?: ContestSubmissionSettings;
 }
 
 /**
@@ -75,6 +105,14 @@ export const AVAILABLE_CONTESTS: ContestInfo[] = [
     resultAnnouncementDate: '2025-11-01',
     status: 'active',
     isActive: true,
+    submissionSettings: {
+      allowedFormats: ['all'],
+      maxVideoFiles: 3,
+      maxVideoTotalSizeMB: 10,
+      allowedExternalLinkTypes: ['youtube'],
+      maxExternalLinks: 10,
+      maxSelectedWorks: 1,
+    },
   },
   {
     id: '2',

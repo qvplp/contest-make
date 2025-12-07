@@ -7,11 +7,13 @@ Next.js 16 (App Router) + TypeScript + React 19 で実装されており、コ�
 
 - **コンテスト機能**: 一覧・詳細・応募・投票機能
 - **攻略記事機能**: 一覧・詳細・投稿（BlockNoteブロックエディタ + Markdown プレビュー）
-- **作品機能**: 一覧・投稿・引用機能
+- **作品機能**: 一覧・投稿・詳細ビューア・引用機能
+- **外部リンク機能**: YouTube埋め込み対応（作品応募・詳細表示）
 - **プロフィール機能**: 表示・編集・通知管理
 - **認証機能**: ログイン・新規登録（localStorage モック）
 - **下書き管理**: 自動保存・履歴管理・ページ離脱ガード
 - **決済設定**: クレジット残高表示（モック）
+- **審査機能**: 型定義のみ（実装は未完了）
 
 より詳細な機能一覧は `実装機能一覧.md` を参照してください。
 
@@ -55,6 +57,9 @@ sousaku-contest/
 │   ├── editor/                   # BlockEditor, MarkdownPreview, SectionManager など
 │   ├── guides/                   # ガイド引用関連コンポーネント
 │   ├── works/                    # 作品関連コンポーネント
+│   │   ├── WorkMediaPreview.tsx  # 作品メディアプレビュー
+│   │   ├── WorkSubmitModal.tsx   # 作品投稿・編集モーダル
+│   │   └── WorkViewerModal.tsx   # 作品詳細ビューアモーダル
 │   ├── ui/                       # 共通UIコンポーネント
 │   ├── Header.tsx                # ヘッダー
 │   ├── Footer.tsx                # フッター
@@ -69,11 +74,13 @@ sousaku-contest/
 ├── utils/                        # ユーティリティ関数
 │   ├── contestGuides.ts          # コンテスト x 攻略記事のモックデータ・ヘルパー
 │   ├── draftManager.ts           # 記事下書きの保存・履歴管理
-│   └── markdown.ts               # Markdown パース・サニタイズ・ハイライト
+│   ├── markdown.ts               # Markdown パース・サニタイズ・ハイライト
+│   └── externalLinks.ts          # 外部リンク（YouTube）のバリデーション・処理
 ├── types/                        # TypeScript 型定義
 │   ├── guideForm.ts              # 記事フォーム型
-│   ├── contests.ts               # コンテスト型
-│   ├── works.ts                  # 作品型
+│   ├── contests.ts               # コンテスト型（応募設定・外部リンク設定含む）
+│   ├── works.ts                  # 作品型（外部リンク情報含む）
+│   ├── judging.ts                # 審査関連型
 │   ├── blocknote.d.ts            # BlockNote 型定義
 │   └── ContestGuidesViewer.ts    # コンテストガイドビューア型
 ├── constants/                    # 定数
@@ -160,6 +167,7 @@ npm run lint
 - **認証**: `AuthContext` + `localStorage('animehub_user')` によるモック実装
 - **下書き管理**: `localStorage` に自動保存（`draftManager` を使用）
 - **引用データ**: `localStorage` に保存（`guide_citations_{guideId}` 形式）
+- **作品データ**: `WorksContext` で管理（外部リンク情報含む）
 
 ### セキュリティ
 
@@ -185,5 +193,12 @@ npm run lint
   - `/guides/new`, `/guides/new/settings` (記事投稿)
   - `/guides/[id]/cite` (記事引用)
   - `/profile`, `/profile/edit` (プロフィール)
+
+### 外部リンク機能
+
+- **YouTube対応**: 作品応募時にYouTubeリンクを追加可能
+- **バリデーション**: URL形式の検証（`utils/externalLinks.ts`）
+- **埋め込み表示**: 作品詳細ビューアでYouTube動画を埋め込み表示
+- **コンテスト設定**: 各コンテストで許可する外部リンクの種類を設定可能
 
 詳細な仕様やユースケースは `実装機能一覧.md` を参照してください。
