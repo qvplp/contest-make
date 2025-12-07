@@ -62,7 +62,7 @@ export default function WorkViewerModal({ isOpen, onClose, work }: WorkViewerMod
   }, [userWorks, currentWork, user]);
 
   // 早期リターン: currentWorkがnullの場合は何も表示しない
-  if (!isMounted || !isOpen || !currentWork) {
+  if (!isMounted || !isOpen || !currentWork || typeof window === 'undefined') {
     return null;
   }
 
@@ -96,7 +96,7 @@ export default function WorkViewerModal({ isOpen, onClose, work }: WorkViewerMod
 
   return (
     <>
-      {createPortal(
+      {isMounted && typeof window !== 'undefined' && document.body && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-8">
           <div className="w-full max-w-6xl bg-gray-900 rounded-2xl border border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* ヘッダー */}

@@ -314,11 +314,11 @@ export default function WorkSubmitModal({
     }
   };
 
-  if (!isMounted || !isOpen) {
+  if (!isMounted || !isOpen || typeof window === 'undefined') {
     return null;
   }
 
-  return createPortal(
+  return isMounted && typeof window !== 'undefined' && document.body ? createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
       <div className="w-full max-w-4xl bg-gray-900 rounded-2xl border border-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
@@ -640,7 +640,7 @@ export default function WorkSubmitModal({
       </div>
     </div>,
     document.body,
-  );
+  ) : null;
 }
 
 
