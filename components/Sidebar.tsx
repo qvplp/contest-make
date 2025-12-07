@@ -12,8 +12,6 @@ import {
   PenTool,
   Settings,
   HelpCircle,
-  Coins,
-  CreditCard,
   X,
   PlusCircle,
   Gavel,
@@ -31,15 +29,11 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
   const { user, logout, isJudge } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // モックデータ: クレジット情報（実際の実装ではAPIから取得）
-  const credits = 92;
-
   // ユーザー情報を整形（avatarがない場合はデフォルト画像を使用）
   const userData = user ? {
     name: user.name,
     username: user.email?.split('@')[0] || 'user',
     avatar: user.avatar || '/images/avatars/user1.jpg',
-    credits: credits,
   } : null;
 
   const navigationItems = [
@@ -129,23 +123,6 @@ export default function Sidebar({ isMobileMenuOpen = false, onClose }: SidebarPr
           </div>
         </div>
       </Link>
-
-      {/* Credit Balance Card */}
-      <div className="mx-4 mb-4 p-4 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg shadow-purple-500/30">
-        <div className="flex items-center gap-2 mb-2">
-          <Coins size={16} className="text-yellow-300" />
-          <span className="text-sm text-purple-100">クレジット残高</span>
-        </div>
-        <div className="text-3xl font-bold text-white mb-3">
-          {userData.credits}
-        </div>
-        <Link href="/settings/payment" onClick={handleMenuItemClick}>
-          <button className="w-full py-2 px-4 bg-white hover:bg-gray-100 text-purple-600 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
-            <CreditCard size={18} />
-            チャージする
-          </button>
-        </Link>
-      </div>
 
       <div className="mx-4 mb-4">
         <button

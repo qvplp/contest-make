@@ -127,7 +127,6 @@ export default function ProfilePage() {
     { id: 2, type: 'comment', title: '新しいコメント', message: '「幽霊の描き方」に新しいコメントがつきました', icon: '💬', isRead: false, createdAt: '2025-10-31T05:00:00Z', link: '/guides/2' },
     { id: 3, type: 'contest', title: 'コンテスト結果発表', message: 'ハロウィンカップ2025の結果が発表されました', icon: '🏆', isRead: false, createdAt: '2025-10-30T10:00:00Z', link: '/contest/halloween2025' },
     { id: 4, type: 'follow', title: '新しいフォロワー', message: '@AIクリエイター があなたをフォローしました', icon: '👤', isRead: true, createdAt: '2025-10-29T15:30:00Z', link: '/user/2' },
-    { id: 5, type: 'system', title: 'システム通知', message: 'クレジットの有効期限が近づいています', icon: '📢', isRead: true, createdAt: '2025-10-28T09:00:00Z', link: '/settings/payment' },
   ];
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
