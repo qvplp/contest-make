@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -39,7 +39,7 @@ const BlockEditor = dynamic(
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-export default function NewGuidePage() {
+function NewGuidePageContent() {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -77,7 +77,7 @@ export default function NewGuidePage() {
     }
 
     setIsLoaded(true);
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, router, searchParams]);
 
   const handleThumbnailChange = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -371,5 +371,24 @@ export default function NewGuidePage() {
       </div>
 
     </div>
+  );
+}
+
+export default function NewGuidePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-gray-950 min-h-screen py-8">
+          <div className="container mx-auto px-6 max-w-4xl">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-400">読み込み中...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <NewGuidePageContent />
+    </Suspense>
   );
 }
