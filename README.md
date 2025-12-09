@@ -5,14 +5,14 @@ Next.js 16 (App Router) + TypeScript + React 19 で実装されており、コ�
 
 ### 主要機能
 
-- **コンテスト機能**: 一覧・詳細・応募・投票機能
-- **攻略記事機能**: 一覧・詳細・投稿（BlockNoteブロックエディタ + Markdown プレビュー）
-- **作品機能**: 一覧・投稿・詳細ビューア・引用機能
-- **外部リンク機能**: YouTube埋め込み対応（作品応募・詳細表示）
-- **プロフィール機能**: 表示・編集・通知管理
+- **コンテスト機能**: 一覧・詳細・応募・投票機能（`modules/contest`）
+- **攻略記事機能**: 一覧・詳細・投稿（BlockNote + Markdown）/ 設定 / プレビュー（`modules/guide`）
+- **作品機能**: 一覧・投稿・詳細ビューア・引用機能（`modules/works`）
+- **外部リンク機能**: YouTube埋め込み対応（応募/詳細表示）
+- **プロフィール機能**: 表示・編集・通知管理（`modules/account`）
 - **認証機能**: ログイン・新規登録（localStorage モック）
 - **下書き管理**: 自動保存・履歴管理・ページ離脱ガード
-- **審査機能**: 審査員向けコンテスト一覧・作品審査・ノミネート機能
+- **審査機能**: 審査員向けコンテスト一覧・作品審査・ノミネート機能（`modules/judging`）
 
 より詳細な機能一覧は `実装機能一覧.md` を参照してください。
 
@@ -67,24 +67,30 @@ sousaku-contest/
 │   ├── Footer.tsx                # フッター
 │   ├── Sidebar.tsx               # サイドバー
 │   └── ResponsiveImage.tsx      # レスポンシブ画像コンポーネント
-├── contexts/                     # React Context
-│   ├── AuthContext.tsx           # 認証状態管理（モック）
-│   └── WorksContext.tsx          # 作品状態管理
+├── contexts/                     # React Context（薄いラッパ）
+│   ├── AuthContext.tsx           # 認証状態管理（modules/account の usecase 利用）
+│   └── WorksContext.tsx          # 作品状態管理（modules/works の usecase 利用）
 ├── hooks/                        # カスタムフック
 │   ├── useAutoSave.ts            # 記事の自動保存
 │   └── useUnloadGuard.ts         # ページ離脱ガード
 ├── utils/                        # ユーティリティ関数
-│   ├── contestGuides.ts          # コンテスト x 攻略記事のモックデータ・ヘルパー
-│   ├── draftManager.ts           # 記事下書きの保存・履歴管理
+│   ├── contestGuides.ts          # コンテスト x 攻略記事のヘルパー（contest module 型参照）
+│   ├── draftManager.ts           # 旧下書き管理（互換ラッパとして modules/guide に委譲）
 │   ├── markdown.ts               # Markdown パース・サニタイズ・ハイライト
 │   └── externalLinks.ts          # 外部リンク（YouTube）のバリデーション・処理
-├── types/                        # TypeScript 型定義
-│   ├── guideForm.ts              # 記事フォーム型
-│   ├── contests.ts               # コンテスト型（応募設定・外部リンク設定含む）
-│   ├── works.ts                  # 作品型（外部リンク情報含む）
-│   ├── judging.ts                # 審査関連型
+├── types/                        # TypeScript 型エイリアス（後方互換用）
+│   ├── guideForm.ts              # modules/guide へのエイリアス
+│   ├── contests.ts               # modules/contest へのエイリアス
+│   ├── works.ts                  # modules/works へのエイリアス
+│   ├── judging.ts                # modules/judging へのエイリアス
 │   ├── blocknote.d.ts            # BlockNote 型定義
-│   └── ContestGuidesViewer.ts    # コンテストガイドビューア型
+│   └── ContestGuidesViewer.ts    # modules/contest DTO へのエイリアス
+├── modules/                      # ドメイン別の3層構成（DDDインスパイア）
+│   ├── account/                  # 認証・プロフィール
+│   ├── contest/                  # コンテスト情報・投稿・投票
+│   ├── guide/                    # 攻略記事（下書き/設定/DTO）
+│   ├── judging/                  # 審査用型
+│   └── works/                    # 作品（投稿/更新/公開切替/応募）
 ├── constants/                    # 定数
 │   └── taxonomies.ts             # 分類・カテゴリー定義
 ├── lib/                          # ライブラリ・モックデータ

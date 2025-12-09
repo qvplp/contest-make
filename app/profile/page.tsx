@@ -21,7 +21,11 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
-import { Work } from '@/types/works';
+import { Work } from '@/modules/works/domain/Work';
+import { GetProfile } from '@/modules/account/application/GetProfile';
+import { SaveProfile } from '@/modules/account/application/SaveProfile';
+import { LocalStorageProfileRepository } from '@/modules/account/infra/LocalStorageProfileRepository';
+import type { Profile } from '@/modules/account/domain/Profile';
 import WorkSubmitModal from '@/components/works/WorkSubmitModal';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 import WorkViewerModal from '@/components/works/WorkViewerModal';
@@ -62,26 +66,38 @@ export default function ProfilePage() {
   const [selectedWork, setSelectedWork] = useState<Work | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userWorks, toggleVisibility } = useWorks();
+  const profileRepo = useMemo(() => new LocalStorageProfileRepository(), []);
+  const getProfile = useMemo(() => new GetProfile(profileRepo), [profileRepo]);
+  const saveProfile = useMemo(() => new SaveProfile(profileRepo), [profileRepo]);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
 
-  const userProfile = {
-    id: '1',
-    username: 'AIマスター',
-    userId: 'ai_master',
-    avatar: '/images/avatars/user1.jpg',
-    bio: 'AIアートを愛するクリエイター。Seedream、Midjourney、DALL-Eを使って幻想的な世界を創造しています。コンテストで数々の賞を受賞。初心者の方へのアドバイスも歓迎です！',
-    credits: 92,
-    social: {
-      twitter: 'https://twitter.com/ai_master',
-      instagram: 'https://instagram.com/ai_master',
-      portfolio: 'https://ai-master-portfolio.com',
-    },
-    stats: {
-      guidesCount: 12,
-      postsCount: 24,
-      followersCount: 156,
-      followingCount: 89,
-    },
-  };
+  useEffect(() => {
+    const existing = getProfile.execute();
+    if (existing) {
+      setUserProfile(existing);
+      return;
+    }
+    const fallback: Profile = {
+      id: '1',
+      username: 'AIマスター',
+      userId: 'ai_master',
+      avatar: '/images/avatars/user1.jpg',
+      bio: 'AIアートを愛するクリエイター。Seedream、Midjourney、DALL-Eを使って幻想的な世界を創造しています。コンテストで数々の賞を受賞。初心者の方へのアドバイスも歓迎です！',
+      social: {
+        twitter: 'https://twitter.com/ai_master',
+        instagram: 'https://instagram.com/ai_master',
+        portfolio: 'https://ai-master-portfolio.com',
+      },
+      stats: {
+        guidesCount: 12,
+        postsCount: 24,
+        followersCount: 156,
+        followingCount: 89,
+      },
+    };
+    saveProfile.execute(fallback);
+    setUserProfile(fallback);
+  }, [getProfile, saveProfile]);
 
   const badges: Badge[] = [
     { id: 1, type: 'gold', contest: 'ハロウィンカップ', rank: 1, year: 2025, icon: '🥇' },
@@ -145,6 +161,8 @@ export default function ProfilePage() {
   };
 
   const userPostsCount = userWorks.length;
+
+  if (!userProfile) return null;
 
   return (
     <div className="bg-gray-950 min-h-screen">

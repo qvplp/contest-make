@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ContestGuidesViewerProps } from '@/types/ContestGuidesViewer';
+import { ContestGuidesViewerProps } from '@/modules/contest/application/ContestGuidesViewerDto';
 import ContestGuidesViewerHeader from './ContestGuidesViewerHeader';
 import GuideCard from './GuideCard';
 import ContestGuidesViewerStyles from './ContestGuidesViewerStyles';

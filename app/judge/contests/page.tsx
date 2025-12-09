@@ -14,7 +14,9 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { AVAILABLE_CONTESTS, getContestScheduleStatus, ContestScheduleStatus } from '@/types/contests';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
+import type { ContestScheduleStatus } from '@/modules/contest/domain/Contest';
+import type { JudgableContest } from '@/modules/judging/domain/Judging';
 
 type SortOption = 'endDateAsc' | 'endDateDesc' | 'startDateAsc' | 'startDateDesc';
 type ScheduleFilter = 'all' | ContestScheduleStatus;
@@ -24,6 +26,7 @@ export default function JudgeContestsPage() {
   const router = useRouter();
   const [sortBy, setSortBy] = useState<SortOption>('endDateDesc');
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
 
   // ログイン・審査員チェック
   if (!isLoggedIn || !isJudge) {
@@ -32,19 +35,21 @@ export default function JudgeContestsPage() {
   }
 
   // 審査可能なコンテストを取得（応募終了後、結果発表前まで）
-  const judgableContests = useMemo(() => {
-    return AVAILABLE_CONTESTS.map((contest) => ({
-      ...contest,
-      scheduleStatus: getContestScheduleStatus(contest),
-    })).filter((contest) => {
-      // 審査可能なコンテスト: 応募終了後、結果発表前まで
-      return (
-        contest.scheduleStatus === 'review' ||
-        contest.scheduleStatus === 'announcement' ||
-        contest.scheduleStatus === 'ended'
-      );
-    });
-  }, []);
+  const judgableContests: JudgableContest[] = useMemo(() => {
+    return contestQuery
+      .getAll()
+      .map((contest) => ({
+        ...contest,
+        scheduleStatus: contestQuery.getScheduleStatus(contest),
+      }))
+      .filter((contest) => {
+        return (
+          contest.scheduleStatus === 'review' ||
+          contest.scheduleStatus === 'announcement' ||
+          contest.scheduleStatus === 'ended'
+        );
+      });
+  }, [contestQuery]);
 
   // ソート処理
   const sortedContests = useMemo(() => {
@@ -263,5 +268,7 @@ export default function JudgeContestsPage() {
     </div>
   );
 }
+
+
 
 

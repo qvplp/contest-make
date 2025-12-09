@@ -1,157 +1,75 @@
-/**
- * 下書き管理ユーティリティ（content ベース版）
- */
-
-export interface ArticleDraft {
-  articleId: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  thumbnailPreview: string | null;
-  citedGuides: import('@/types/guideForm').CitedGuide[];
-  updatedAt: string;
-}
-
-export interface ArticleSettings {
-  articleId: string;
-  category: string;
-  classifications: string[];
-  aiModels: string[];
-  tags: string[];
-  contestTag: string;
-  updatedAt: string;
-}
-
-const DRAFT_PREFIX = 'guide_draft_';
-const SETTINGS_PREFIX = 'guide_settings_';
+import { SaveGuideDraft } from '@/modules/guide/application/SaveGuideDraft';
+import { GetGuideDraft } from '@/modules/guide/application/GetGuideDraft';
+import { SaveGuideSettings } from '@/modules/guide/application/SaveGuideSettings';
+import { GetGuideSettings } from '@/modules/guide/application/GetGuideSettings';
+import { LocalStorageGuideDraftRepository } from '@/modules/guide/infra/LocalStorageGuideDraftRepository';
+import { LocalStorageGuideSettingsRepository } from '@/modules/guide/infra/LocalStorageGuideSettingsRepository';
+import type { GuideDraft } from '@/modules/guide/domain/GuideDraft';
+import type { GuideSettings } from '@/modules/guide/domain/GuideSettings';
+import type { CitedGuide } from '@/modules/guide/domain/GuideReference';
 
 /**
- * 下書きを保存（localStorage）
+ * 互換レイヤー: 既存の import を壊さずに modules/guide の実装へ委譲する
  */
+const draftRepo = new LocalStorageGuideDraftRepository();
+const settingsRepo = new LocalStorageGuideSettingsRepository();
+const saveDraftUseCase = new SaveGuideDraft(draftRepo);
+const getDraftUseCase = new GetGuideDraft(draftRepo);
+const saveSettingsUseCase = new SaveGuideSettings(settingsRepo);
+const getSettingsUseCase = new GetGuideSettings(settingsRepo);
+
+export type ArticleDraft = GuideDraft & { citedGuides: CitedGuide[] };
+export type ArticleSettings = GuideSettings;
+
 export function saveDraft(
   articleId: string,
-  draft: Omit<ArticleDraft, 'articleId' | 'updatedAt'>
+  draft: Omit<ArticleDraft, 'articleId' | 'id' | 'updatedAt'>
 ): void {
-  if (typeof window === 'undefined') return;
-
-  const data: ArticleDraft = {
-    ...draft,
+  saveDraftUseCase.execute({
     articleId,
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    localStorage.setItem(`${DRAFT_PREFIX}${articleId}`, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save draft:', error);
-    throw error;
-  }
+    title: draft.title,
+    excerpt: draft.excerpt,
+    content: draft.content,
+    thumbnailPreview: draft.thumbnailPreview,
+    citedGuides: draft.citedGuides,
+  });
 }
 
-/**
- * 下書きを取得
- */
 export function getDraft(articleId: string): ArticleDraft | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const stored = localStorage.getItem(`${DRAFT_PREFIX}${articleId}`);
-    if (!stored) return null;
-
-    const parsed = JSON.parse(stored);
-
-    // 旧形式（sections 配列）を使っている場合は無視して新規作成させる
-    if (parsed.sections && !parsed.content) {
-      return null;
-    }
-
-    return parsed as ArticleDraft;
-  } catch (error) {
-    console.error('Failed to get draft:', error);
-    return null;
-  }
+  const result = getDraftUseCase.execute(articleId);
+  return result ? { ...result, articleId: result.id } : null;
 }
 
-/**
- * 下書きを削除
- */
 export function deleteDraft(articleId: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(`${DRAFT_PREFIX}${articleId}`);
+  draftRepo.delete(articleId);
 }
 
-/**
- * 記事設定を保存
- */
 export function saveArticleSettings(
   articleId: string,
   settings: Omit<ArticleSettings, 'articleId' | 'updatedAt'>
 ): void {
-  if (typeof window === 'undefined') return;
-
-  const data: ArticleSettings = {
-    ...settings,
+  saveSettingsUseCase.execute({
     articleId,
-    updatedAt: new Date().toISOString(),
-  };
-
-  try {
-    localStorage.setItem(`${SETTINGS_PREFIX}${articleId}`, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save article settings:', error);
-    throw error;
-  }
+    category: settings.category,
+    classifications: settings.classifications,
+    aiModels: settings.aiModels,
+    tags: settings.tags,
+    contestTag: settings.contestTag,
+  });
 }
 
-/**
- * 記事設定を取得
- */
 export function getArticleSettings(articleId: string): ArticleSettings | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const stored = localStorage.getItem(`${SETTINGS_PREFIX}${articleId}`);
-    if (!stored) return null;
-    return JSON.parse(stored) as ArticleSettings;
-  } catch (error) {
-    console.error('Failed to get article settings:', error);
-    return null;
-  }
+  return getSettingsUseCase.execute(articleId);
 }
 
-/**
- * 記事設定を削除
- */
 export function deleteArticleSettings(articleId: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(`${SETTINGS_PREFIX}${articleId}`);
+  settingsRepo.delete(articleId);
 }
 
-/**
- * 全下書き一覧（デバッグ・一覧用）
- */
 export function getAllDrafts(): ArticleDraft[] {
-  if (typeof window === 'undefined') return [];
-
-  const drafts: ArticleDraft[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(DRAFT_PREFIX)) {
-      const articleId = key.replace(DRAFT_PREFIX, '');
-      const draft = getDraft(articleId);
-      if (draft) drafts.push(draft);
-    }
-  }
-
-  return drafts.sort(
-    (a, b) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  return draftRepo.list().map((draft) => ({ ...draft, articleId: draft.id }));
 }
 
-/**
- * 未保存の変更があるかどうか（シンプル版）
- */
 export function hasUnsavedChanges(
   articleId: string,
   currentData: { title: string; excerpt: string; content: string }

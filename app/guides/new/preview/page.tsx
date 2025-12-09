@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Edit3, Send, Eye, ThumbsUp, MessageCircle, Share2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  getDraft,
-  getArticleSettings,
-  type ArticleDraft,
-  type ArticleSettings,
-} from '@/utils/draftManager';
+import { GetGuideDraft } from '@/modules/guide/application/GetGuideDraft';
+import { GetGuideSettings } from '@/modules/guide/application/GetGuideSettings';
+import { LocalStorageGuideDraftRepository } from '@/modules/guide/infra/LocalStorageGuideDraftRepository';
+import { LocalStorageGuideSettingsRepository } from '@/modules/guide/infra/LocalStorageGuideSettingsRepository';
+import type { GuideDraft } from '@/modules/guide/domain/GuideDraft';
+import type { GuideSettings } from '@/modules/guide/domain/GuideSettings';
 
 const BlockEditor = dynamic(
   () => import('@/components/editor/BlockEditor'),
@@ -33,9 +33,20 @@ function GuidePreviewContent() {
   const searchParams = useSearchParams();
   const articleId = searchParams.get('articleId') || '';
 
-  const [draft, setDraft] = useState<ArticleDraft | null>(null);
-  const [settings, setSettings] = useState<ArticleSettings | null>(null);
+  const [draft, setDraft] = useState<GuideDraft | null>(null);
+  const [settings, setSettings] = useState<GuideSettings | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const draftRepo = useMemo(() => new LocalStorageGuideDraftRepository(), []);
+  const settingsRepo = useMemo(
+    () => new LocalStorageGuideSettingsRepository(),
+    []
+  );
+  const getDraft = useMemo(() => new GetGuideDraft(draftRepo), [draftRepo]);
+  const getSettings = useMemo(
+    () => new GetGuideSettings(settingsRepo),
+    [settingsRepo]
+  );
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -48,14 +59,14 @@ function GuidePreviewContent() {
       return;
     }
 
-    const d = getDraft(articleId);
+    const d = getDraft.execute(articleId);
     if (!d) {
       alert('記事データが見つかりません。最初からやり直してください。');
       router.push('/guides/new');
       return;
     }
 
-    const s = getArticleSettings(articleId);
+    const s = getSettings.execute(articleId);
 
     setDraft(d);
     setSettings(s);

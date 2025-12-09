@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorks } from '@/contexts/WorksContext';
-import { getContestBySlug } from '@/types/contests';
-import { ExternalLink } from '@/types/works';
+import type { ExternalLink } from '@/modules/works/domain/Work';
 import { validateExternalLink } from '@/utils/externalLinks';
 import {
   X,
@@ -18,6 +17,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
 
 interface FormData {
   selectedWorkIds: string[];
@@ -32,8 +32,8 @@ export default function SubmitPage() {
   const { isLoggedIn } = useAuth();
   const { userWorks, submitWorkToContest } = useWorks();
   const router = useRouter();
-
-  const contest = getContestBySlug('halloween2025');
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
+  const contest = contestQuery.getBySlug('halloween2025');
   const submissionSettings = contest?.submissionSettings || {
     allowedFormats: ['all'],
     maxVideoFiles: 3,

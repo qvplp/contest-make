@@ -1,24 +1,9 @@
 /**
- * ContestGuidesViewerコンポーネントで使用する型定義
+ * NOTE:
+ * このファイルは modules/contest/application/ContestGuidesViewerDto へのエイリアスです。
+ * 新規実装は modules 配下を直接参照してください。
  */
-
-export interface Guide {
-  id: number;
-  title: string;
-  author: string;
-  authorAvatar: string;
-  thumbnail: string;
-  excerpt: string;
-  category: string;
-  likes: number;
-  comments: number;
-  views: number;
-  createdAt: string;
-}
-
-export interface ContestGuidesViewerProps {
-  guides: Guide[];
-  contestSlug: string;
-  contestDisplayName: string;
-}
-
+export type {
+  ContestGuide,
+  ContestGuidesViewerProps,
+} from '@/modules/contest/application/ContestGuidesViewerDto';

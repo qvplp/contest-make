@@ -15,8 +15,8 @@ import {
   Play,
   Award,
 } from 'lucide-react';
-import { AVAILABLE_CONTESTS, getContestBySlug } from '@/types/contests';
-import { JudgingWork, CategoryNominations } from '@/types/judging';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
+import { JudgingWork, CategoryNominations } from '@/modules/judging/domain/Judging';
 
 type SortOption = 'votesDesc' | 'votesAsc' | 'likesDesc' | 'likesAsc' | 'viewsDesc' | 'viewsAsc' | 'recent';
 
@@ -199,7 +199,8 @@ export default function JudgeContestDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // コンテスト情報を取得
-  const contest = AVAILABLE_CONTESTS.find((c) => c.id === contestId);
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
+  const contest = contestQuery.getAll().find((c) => c.id === contestId);
 
   useEffect(() => {
     if (!isLoggedIn || !isJudge) {

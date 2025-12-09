@@ -1,24 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Save, X, Upload, Twitter, Instagram, Globe } from 'lucide-react';
+import { LocalStorageProfileRepository } from '@/modules/account/infra/LocalStorageProfileRepository';
+import { GetProfile } from '@/modules/account/application/GetProfile';
+import { SaveProfile } from '@/modules/account/application/SaveProfile';
+import type { Profile } from '@/modules/account/domain/Profile';
 
 export default function ProfileEditPage() {
   const router = useRouter();
+  const profileRepo = useMemo(() => new LocalStorageProfileRepository(), []);
+  const getProfile = useMemo(() => new GetProfile(profileRepo), [profileRepo]);
+  const saveProfile = useMemo(() => new SaveProfile(profileRepo), [profileRepo]);
 
   const [formData, setFormData] = useState({
-    username: 'AIマスター',
-    bio: 'AIアートを愛するクリエイター。Seedream、Midjourney、DALL-Eを使って幻想的な世界を創造しています。コンテストで数々の賞を受賞。初心者の方へのアドバイスも歓迎です！',
-    twitter: 'https://twitter.com/ai_master',
-    instagram: 'https://instagram.com/ai_master',
-    portfolio: 'https://ai-master-portfolio.com',
+    username: '',
+    bio: '',
+    twitter: '',
+    instagram: '',
+    portfolio: '',
   });
 
   const [avatarPreview, setAvatarPreview] = useState('/images/avatars/user1.jpg');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const profile = getProfile.execute();
+    if (profile) {
+      setFormData({
+        username: profile.username,
+        bio: profile.bio,
+        twitter: profile.social.twitter ?? '',
+        instagram: profile.social.instagram ?? '',
+        portfolio: profile.social.portfolio ?? '',
+      });
+      setAvatarPreview(profile.avatar);
+    }
+  }, [getProfile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -38,11 +59,28 @@ export default function ProfileEditPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      alert('プロフィールを保存しました！');
-      router.push('/profile');
-    }, 2000);
+    const existing = getProfile.execute();
+    const profile: Profile = {
+      id: existing?.id ?? '1',
+      username: formData.username || '名無しさん',
+      userId: existing?.userId ?? 'user',
+      avatar: avatarPreview,
+      bio: formData.bio,
+      social: {
+        twitter: formData.twitter,
+        instagram: formData.instagram,
+        portfolio: formData.portfolio,
+      },
+      stats: existing?.stats ?? {
+        guidesCount: 0,
+        postsCount: 0,
+        followersCount: 0,
+        followingCount: 0,
+      },
+    };
+    saveProfile.execute(profile);
+    setIsSaving(false);
+    router.push('/profile');
   };
 
   return (

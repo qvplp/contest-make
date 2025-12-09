@@ -1,85 +1,20 @@
 /**
- * 攻略記事フォームで使用する型定義
+ * NOTE:
+ * このファイルは modules/guide 配下の定義へのエイリアスとして残しています。
+ * 新規実装は modules/guide/ 下を直接 import してください。
  */
-
-// 分類・AIモデルのラベルは現行どおり日本語を維持
-export type Classification =
-  | 'アニメ'
-  | '漫画'
-  | '実写'
-  | 'カメラワーク'
-  | 'ワークフロー'
-  | 'AIモデル';
-
-export type AIModel =
-  | 'GPT-5'
-  | 'Sora2'
-  | 'Seedream'
-  | 'Seedance'
-  | 'Dreamina'
-  | 'Omnihuman'
-  | 'Hotgen General'
-  | 'Claude 4'
-  | 'Midjourney v7'
-  | 'DALL-E 4';
-
-/**
- * 引用した記事の情報
- */
-export interface CitedGuide {
-  id: string;
-  title?: string;
-  thumbnail?: string;
-}
-
-/**
- * 第1ページ（コンテンツ編集）のフォームデータ
- * sections を廃止し、単一の content に統一
- */
-export interface ContentFormData {
-  title: string;
-  excerpt: string;
-  content: string;
-  thumbnail: File | null;
-  thumbnailPreview: string | null;
-  citedGuides: CitedGuide[];
-}
-
-/**
- * 第2ページ（設定）のフォームデータ
- */
-export interface SettingsFormData {
-  category: string;
-  classifications: Classification[];
-  aiModels: AIModel[];
-  tags: string[];
-  contestTag: string;
-}
-
-/**
- * 完全なフォームデータ（投稿時に使用）
- */
-export interface CompleteFormData extends ContentFormData, SettingsFormData {
-  authorId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// 初期値
-export const initialContentFormData: ContentFormData = {
-  title: '',
-  excerpt: '',
-  content: '',
-  thumbnail: null,
-  thumbnailPreview: null,
-  citedGuides: [],
-};
-
-export const initialSettingsFormData: SettingsFormData = {
-  category: '',
-  classifications: [],
-  aiModels: [],
-  tags: [],
-  contestTag: '',
-};
+export type {
+  Classification,
+  AIModel,
+} from '@/modules/guide/domain/GuideTaxonomy';
+export type { CitedGuide } from '@/modules/guide/domain/GuideReference';
+export type {
+  ContentFormDto as ContentFormData,
+  SettingsFormDto as SettingsFormData,
+  GuideDraftDto as CompleteFormData,
+} from '@/modules/guide/application/dto/GuideFormDto';
+export {
+  initialContentFormData,
+  initialSettingsFormData,
+} from '@/modules/guide/application/dto/GuideFormDto';
 

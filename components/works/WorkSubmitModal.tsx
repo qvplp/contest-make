@@ -5,8 +5,8 @@ import { createPortal } from 'react-dom';
 import { X, Upload, Eye, Shield, Link2, FileVideo, Youtube } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
 import { AI_MODEL_OPTIONS, CLASSIFICATION_OPTIONS } from '@/constants/taxonomies';
-import { AIModel, Classification } from '@/types/guideForm';
-import { ExternalLink, Work } from '@/types/works';
+import type { AIModel, Classification } from '@/modules/guide/domain/GuideTaxonomy';
+import type { ExternalLink, Work } from '@/modules/works/domain/Work';
 import { validateExternalLink } from '@/utils/externalLinks';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 
@@ -91,8 +91,8 @@ export default function WorkSubmitModal({
         title: workToEdit.title,
         summary: workToEdit.summary,
         mediaType: workToEdit.mediaType,
-        classifications: workToEdit.classifications,
-        aiModels: workToEdit.aiModels,
+        classifications: workToEdit.classifications as Classification[],
+        aiModels: workToEdit.aiModels as AIModel[],
         tags: workToEdit.tags,
         visibility: workToEdit.visibility,
       });

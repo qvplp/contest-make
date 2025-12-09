@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Play, ThumbsUp, Eye, Flame, PlusCircle } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
-import { Work } from '@/types/works';
+import { Work } from '@/modules/works/domain/Work';
 import WorkSubmitModal from '@/components/works/WorkSubmitModal';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 import WorkViewerModal from '@/components/works/WorkViewerModal';

@@ -2,7 +2,7 @@
  * 外部リンク関連のユーティリティ関数
  */
 
-import { ExternalLinkType } from '@/types/contests';
+import { ExternalLinkType } from '@/modules/contest/domain/Contest';
 
 /**
  * YouTube URLのバリデーション
@@ -126,4 +126,6 @@ export function validateExternalLink(
   
   return { valid: true, type: detectedType };
 }
+
+
 

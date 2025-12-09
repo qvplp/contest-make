@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,10 +16,11 @@ import {
   Clock,
 } from 'lucide-react';
 import ContestGuidesViewer from '@/components/ContestGuidesViewer';
-import { getContestBySlug } from '@/types/contests';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
 
 export default function HalloweenContestPage() {
   const { isLoggedIn } = useAuth();
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
 
   const prizes = [
     {
@@ -76,7 +78,7 @@ export default function HalloweenContestPage() {
   ];
 
   // コンテスト情報を取得
-  const contestInfo = getContestBySlug('halloween2025');
+  const contestInfo = contestQuery.getBySlug('halloween2025');
 
   // このコンテストに関連する攻略記事（モック）
   const relatedGuides = [

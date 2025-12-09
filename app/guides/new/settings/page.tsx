@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
@@ -13,31 +13,31 @@ import {
   Save,
   Eye,
 } from 'lucide-react';
-import { AVAILABLE_CONTESTS } from '@/types/contests';
 import MarkdownPreview from '@/components/editor/MarkdownPreview';
 import {
-  getDraft,
-  getArticleSettings,
-  saveArticleSettings,
-} from '@/utils/draftManager';
-import {
-  Classification,
-  AIModel,
-  SettingsFormData,
-} from '@/types/guideForm';
+  SettingsFormDto,
+} from '@/modules/guide/application/dto/GuideFormDto';
 import {
   GUIDE_CATEGORIES,
   CLASSIFICATION_OPTIONS,
   AI_MODEL_OPTIONS,
 } from '@/constants/taxonomies';
+import { SaveGuideSettings } from '@/modules/guide/application/SaveGuideSettings';
+import { GetGuideSettings } from '@/modules/guide/application/GetGuideSettings';
+import { LocalStorageGuideSettingsRepository } from '@/modules/guide/infra/LocalStorageGuideSettingsRepository';
+import { GetGuideDraft } from '@/modules/guide/application/GetGuideDraft';
+import { LocalStorageGuideDraftRepository } from '@/modules/guide/infra/LocalStorageGuideDraftRepository';
+import type { Classification, AIModel } from '@/modules/guide/domain/GuideTaxonomy';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
 
 function GuideSettingsContent() {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const articleId = searchParams.get('articleId') || '';
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
 
-  const [formData, setFormData] = useState<SettingsFormData>({
+  const [formData, setFormData] = useState<SettingsFormDto>({
     category: '',
     classifications: [],
     aiModels: [],
@@ -55,6 +55,21 @@ function GuideSettingsContent() {
     thumbnailPreview: string | null;
   } | null>(null);
 
+  const draftRepo = useMemo(() => new LocalStorageGuideDraftRepository(), []);
+  const settingsRepo = useMemo(
+    () => new LocalStorageGuideSettingsRepository(),
+    []
+  );
+  const getDraft = useMemo(() => new GetGuideDraft(draftRepo), [draftRepo]);
+  const getGuideSettings = useMemo(
+    () => new GetGuideSettings(settingsRepo),
+    [settingsRepo]
+  );
+  const saveGuideSettings = useMemo(
+    () => new SaveGuideSettings(settingsRepo),
+    [settingsRepo]
+  );
+
   useEffect(() => {
     if (!isLoggedIn) {
       router.push('/login');
@@ -67,7 +82,7 @@ function GuideSettingsContent() {
     }
 
     // 第1ページのデータを読み込む
-    const draft = getDraft(articleId);
+    const draft = getDraft.execute(articleId);
     if (!draft) {
       alert('記事データが見つかりません。最初からやり直してください。');
       router.push('/guides/new');
@@ -82,7 +97,7 @@ function GuideSettingsContent() {
     });
 
     // 既存の設定を読み込む
-    const settings = getArticleSettings(articleId);
+    const settings = getGuideSettings.execute(articleId);
     if (settings) {
       setFormData({
         ...settings,
@@ -136,7 +151,14 @@ function GuideSettingsContent() {
     if (!validate()) return;
 
     // 設定を保存
-    saveArticleSettings(articleId, formData);
+    saveGuideSettings.execute({
+      articleId,
+      category: formData.category,
+      classifications: formData.classifications,
+      aiModels: formData.aiModels,
+      tags: formData.tags,
+      contestTag: formData.contestTag,
+    });
 
     setIsSubmitting(true);
     // 実際の実装では、ここでAPIに送信
@@ -338,7 +360,7 @@ function GuideSettingsContent() {
                 className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600"
               >
                 <option value="">コンテストを選択しない</option>
-                {AVAILABLE_CONTESTS.map((contest) => (
+                {contestQuery.getAll().map((contest) => (
                   <option key={contest.id} value={contest.displayName}>
                     {contest.title} ({contest.displayName})
                   </option>

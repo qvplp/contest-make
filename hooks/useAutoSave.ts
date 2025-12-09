@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { saveDraft, hasUnsavedChanges } from '@/utils/draftManager';
+import { useMemo } from 'react';
+import { SaveGuideDraft } from '@/modules/guide/application/SaveGuideDraft';
+import { GetGuideDraft } from '@/modules/guide/application/GetGuideDraft';
+import { LocalStorageGuideDraftRepository } from '@/modules/guide/infra/LocalStorageGuideDraftRepository';
 
 interface UseAutoSaveOptions {
   articleId: string;
@@ -32,13 +35,17 @@ export function useAutoSave({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const intervalTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+  const draftRepo = useMemo(() => new LocalStorageGuideDraftRepository(), []);
+  const saveDraft = useMemo(() => new SaveGuideDraft(draftRepo), [draftRepo]);
+  const getDraft = useMemo(() => new GetGuideDraft(draftRepo), [draftRepo]);
 
   const performSave = useCallback(async () => {
     if (isSavingRef.current || !enabled) return;
     isSavingRef.current = true;
 
     try {
-      saveDraft(articleId, {
+      saveDraft.execute({
+        articleId,
         title,
         excerpt,
         content,
@@ -108,7 +115,21 @@ export function useAutoSave({
 
   return {
     saveNow,
-    hasUnsavedChanges: hasUnsavedChanges(articleId, { title, excerpt, content }),
+    hasUnsavedChanges: (() => {
+      const draft = getDraft.execute(articleId);
+      if (!draft) {
+        return (
+          title.trim() !== '' ||
+          excerpt.trim() !== '' ||
+          content.trim() !== ''
+        );
+      }
+      return (
+        draft.title !== title ||
+        draft.excerpt !== excerpt ||
+        draft.content !== content
+      );
+    })(),
   };
 }
 

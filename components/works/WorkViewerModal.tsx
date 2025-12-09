@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorks } from '@/contexts/WorksContext';
-import { Work } from '@/types/works';
+import type { Work } from '@/modules/works/domain/Work';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 import WorkSubmitModal from './WorkSubmitModal';
 import { extractYouTubeVideoId } from '@/utils/externalLinks';

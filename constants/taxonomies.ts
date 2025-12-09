@@ -1,4 +1,4 @@
-import { AIModel, Classification } from '@/types/guideForm';
+import type { AIModel, Classification } from '@/modules/guide/domain/GuideTaxonomy';
 
 export const GUIDE_CATEGORIES = [
   'プロンプト技術',

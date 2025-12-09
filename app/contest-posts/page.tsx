@@ -17,9 +17,12 @@ import {
 } from 'lucide-react';
 import { useWorks } from '@/contexts/WorksContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Work } from '@/types/works';
+import type { Work } from '@/modules/works/domain/Work';
 import WorkMediaPreview from '@/components/works/WorkMediaPreview';
 import WorkViewerModal from '@/components/works/WorkViewerModal';
+import { GetContestSubmissions } from '@/modules/contest/application/GetContestSubmissions';
+import { StaticContestSubmissionRepository } from '@/modules/contest/infra/StaticContestSubmissionRepository';
+import type { ContestSubmission } from '@/modules/contest/domain/ContestSubmission';
 
 type Classification = 
   | 'HOT' 
@@ -76,6 +79,15 @@ function ContestPostsContent() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const { userWorks } = useWorks();
   const { user } = useAuth();
+  const contestSubmissionsRepo = useMemo(
+    () => new StaticContestSubmissionRepository(),
+    []
+  );
+  const getContestSubmissions = useMemo(
+    () => new GetContestSubmissions(contestSubmissionsRepo),
+    [contestSubmissionsRepo]
+  );
+  const [remotePosts, setRemotePosts] = useState<ContestPost[]>([]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -89,168 +101,26 @@ function ContestPostsContent() {
     }
   }, [searchParams]);
 
-  const allPosts: ContestPost[] = [
-    {
-      id: '1',
-      title: 'ハロウィンの魔女',
-      author: 'AIアーティスト',
-      authorAvatar: '/images/avatars/user1.jpg',
-      mediaSrc: '/images/samples/sample1.jpg',
-      type: 'image',
-      classifications: ['アニメ', 'カメラワーク', 'AIモデル'],
-      aiModels: ['Seedream', 'Midjourney v7'],
-      isHot: true,
-      likes: 542,
-      comments: 78,
-      views: 3456,
-      createdAt: '2025-10-25T10:00:00Z',
+  useEffect(() => {
+    const submissions: ContestSubmission[] = getContestSubmissions.execute('halloween2025');
+    const mapped: ContestPost[] = submissions.map((s) => ({
+      id: String(s.id),
+      title: s.title,
+      author: s.author,
+      authorAvatar: s.imageUrl || '/images/avatars/user1.jpg',
+      mediaSrc: s.imageUrl,
+      type: s.isVideo ? 'video' : 'image',
+      classifications: s.categories as Classification[],
+      aiModels: [],
+      isHot: s.hasVoted ?? false, // モックに合わせて簡易フラグ
+      likes: s.votes,
+      comments: 0,
+      views: s.views,
+      createdAt: s.createdAt,
       contest: 'halloween2025',
-    },
-    {
-      id: '2',
-      title: 'ダンスするかぼちゃ',
-      author: 'ビデオクリエイター',
-      authorAvatar: '/images/avatars/user2.jpg',
-      mediaSrc: '/images/samples/sample3.jpg',
-      type: 'video',
-      classifications: ['アニメ', 'ワークフロー', 'AIモデル'],
-      aiModels: ['Sora2', 'Seedance'],
-      isHot: false,
-      likes: 234,
-      comments: 45,
-      views: 1876,
-      createdAt: '2025-10-24T14:30:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '3',
-      title: 'リアルなお化け屋敷',
-      author: 'フォトリアリスト',
-      authorAvatar: '/images/avatars/user3.jpg',
-      mediaSrc: '/images/samples/sample4.jpg',
-      type: 'image',
-      classifications: ['実写', 'カメラワーク', 'AIモデル'],
-      aiModels: ['DALL-E 4'],
-      isHot: true,
-      likes: 678,
-      comments: 92,
-      views: 4567,
-      createdAt: '2025-10-23T09:15:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '4',
-      title: '幻想的な魔法陣',
-      author: 'マジッククリエイター',
-      authorAvatar: '/images/avatars/user4.jpg',
-      mediaSrc: '/images/samples/sample2.jpg',
-      type: 'image',
-      classifications: ['アニメ', 'AIモデル'],
-      aiModels: ['Seedream'],
-      isHot: false,
-      likes: 345,
-      comments: 56,
-      views: 2345,
-      createdAt: '2025-10-22T16:45:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '5',
-      title: 'ホラー映画のようなシーン',
-      author: 'ムービーメーカー',
-      authorAvatar: '/images/avatars/user5.jpg',
-      mediaSrc: '/images/samples/sample5.jpg',
-      type: 'video',
-      classifications: ['実写', 'カメラワーク', 'ワークフロー', 'AIモデル'],
-      aiModels: ['Sora2', 'Claude 4'],
-      isHot: true,
-      likes: 789,
-      comments: 123,
-      views: 5678,
-      createdAt: '2025-10-21T11:20:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '6',
-      title: '漫画風のハロウィンキャラ',
-      author: 'マンガアーティスト',
-      authorAvatar: '/images/avatars/user6.jpg',
-      mediaSrc: '/images/samples/sample6.jpg',
-      type: 'image',
-      classifications: ['漫画', 'AIモデル'],
-      aiModels: ['Midjourney v7'],
-      isHot: false,
-      likes: 456,
-      comments: 67,
-      views: 2987,
-      createdAt: '2025-10-20T13:30:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '7',
-      title: 'スチームパンクなハロウィン',
-      author: 'スチームパンカー',
-      authorAvatar: '/images/avatars/user1.jpg',
-      mediaSrc: '/images/samples/sample7.jpg',
-      type: 'image',
-      classifications: ['実写', 'カメラワーク', 'AIモデル'],
-      aiModels: ['DALL-E 4', 'GPT-5'],
-      isHot: false,
-      likes: 567,
-      comments: 89,
-      views: 3456,
-      createdAt: '2025-10-19T15:00:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '8',
-      title: 'ダンスパーティーの動画',
-      author: 'アニメーター',
-      authorAvatar: '/images/avatars/user2.jpg',
-      mediaSrc: '/images/samples/sample8.jpg',
-      type: 'video',
-      classifications: ['アニメ', 'ワークフロー', 'AIモデル'],
-      aiModels: ['Seedance', 'Omnihuman'],
-      isHot: true,
-      likes: 890,
-      comments: 134,
-      views: 6789,
-      createdAt: '2025-10-18T10:45:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '9',
-      title: '月夜の狼男',
-      author: 'ホラーマスター',
-      authorAvatar: '/images/avatars/user3.jpg',
-      mediaSrc: '/images/samples/sample1.jpg',
-      type: 'image',
-      classifications: ['アニメ', 'カメラワーク', 'AIモデル'],
-      aiModels: ['Seedream'],
-      isHot: false,
-      likes: 423,
-      comments: 67,
-      views: 2890,
-      createdAt: '2025-10-17T09:30:00Z',
-      contest: 'halloween2025',
-    },
-    {
-      id: '10',
-      title: '魔法使いの実験室',
-      author: 'ファンタジーアーティスト',
-      authorAvatar: '/images/avatars/user4.jpg',
-      mediaSrc: '/images/samples/sample2.jpg',
-      type: 'image',
-      classifications: ['アニメ', 'AIモデル'],
-      aiModels: ['Midjourney v7'],
-      isHot: false,
-      likes: 345,
-      comments: 52,
-      views: 2234,
-      createdAt: '2025-10-16T14:20:00Z',
-      contest: 'halloween2025',
-    },
-  ];
+    }));
+    setRemotePosts(mapped);
+  }, [getContestSubmissions]);
 
   const classificationTabs: { value: Classification | 'all'; label: string; icon?: any }[] = [
     { value: 'all', label: 'すべて' },
@@ -372,7 +242,7 @@ function ContestPostsContent() {
     [userWorks],
   );
 
-  const sortedPosts = [...userContestPosts, ...allPosts].sort((a, b) => {
+  const sortedPosts = [...userContestPosts, ...remotePosts].sort((a, b) => {
     if (sortBy === 'popular') {
       return b.likes - a.likes;
     } else {

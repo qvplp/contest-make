@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
@@ -13,33 +13,33 @@ import {
   Share2,
   Eye,
 } from 'lucide-react';
-
-interface Submission {
-  id: number;
-  title: string;
-  author: string;
-  imageUrl: string;
-  videoUrl?: string;
-  votes: number;
-  views: number;
-  categories: string[];
-  division: string;
-  createdAt: string;
-  description: string;
-  isVideo: boolean;
-  hasVoted?: boolean;
-}
+import { GetContestSubmissions } from '@/modules/contest/application/GetContestSubmissions';
+import { ToggleVoteForSubmission } from '@/modules/contest/application/ToggleVoteForSubmission';
+import { StaticContestSubmissionRepository } from '@/modules/contest/infra/StaticContestSubmissionRepository';
+import type { ContestSubmission } from '@/modules/contest/domain/ContestSubmission';
 
 export default function VotePage() {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
   
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<ContestSubmission[]>([]);
   const [sortBy, setSortBy] = useState<'votes' | 'recent'>('votes');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<ContestSubmission | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const submissionRepo = useMemo(
+    () => new StaticContestSubmissionRepository(),
+    []
+  );
+  const getSubmissions = useMemo(
+    () => new GetContestSubmissions(submissionRepo),
+    [submissionRepo]
+  );
+  const toggleVote = useMemo(
+    () => new ToggleVoteForSubmission(submissionRepo),
+    [submissionRepo]
+  );
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -47,92 +47,8 @@ export default function VotePage() {
       return;
     }
 
-    const mockSubmissions: Submission[] = [
-      {
-        id: 1,
-        title: 'おばけハロウィン',
-        author: 'user_123',
-        imageUrl: '/images/samples/sample1.jpg',
-        votes: 245,
-        views: 1234,
-        categories: ['最優秀ハロウィン雰囲気賞'],
-        division: 'アニメ短編',
-        createdAt: '2025-10-15T10:00:00Z',
-        description: 'トリックオアトリート！をテーマにしたハロウィンの夜の物語',
-        isVideo: false,
-      },
-      {
-        id: 2,
-        title: '魔女の宅配便',
-        author: 'artist_456',
-        imageUrl: '/images/samples/sample2.jpg',
-        videoUrl: '/videos/sample2.mp4',
-        votes: 189,
-        views: 987,
-        categories: ['最優秀キャラクター賞', '最優秀アニメーション賞'],
-        division: 'アニメ短編',
-        createdAt: '2025-10-14T15:30:00Z',
-        description: '魔女が夜空を飛ぶ幻想的なアニメーション',
-        isVideo: true,
-      },
-      {
-        id: 3,
-        title: 'パンプキンナイト',
-        author: 'creator_789',
-        imageUrl: '/images/samples/sample3.jpg',
-        votes: 156,
-        views: 765,
-        categories: ['最優秀ホラー演出賞'],
-        division: 'イラスト',
-        createdAt: '2025-10-13T09:15:00Z',
-        description: 'かぼちゃのランタンが並ぶ不気味な夜',
-        isVideo: false,
-      },
-      {
-        id: 4,
-        title: '満月の海賊船',
-        author: 'pirate_012',
-        imageUrl: '/images/samples/sample5.jpg',
-        videoUrl: '/videos/sample5.mp4',
-        votes: 134,
-        views: 654,
-        categories: ['最優秀ハロウィン雰囲気賞'],
-        division: 'アニメ短編',
-        createdAt: '2025-10-12T14:20:00Z',
-        description: '満月の夜、幽霊船が海を渡る',
-        isVideo: true,
-      },
-      {
-        id: 5,
-        title: 'スチームパンクハロウィン',
-        author: 'steampunk_345',
-        imageUrl: '/images/samples/sample7.jpg',
-        votes: 112,
-        views: 543,
-        categories: ['最優秀キャラクター賞'],
-        division: 'イラスト',
-        createdAt: '2025-10-11T11:45:00Z',
-        description: 'スチームパンクな世界観のハロウィン',
-        isVideo: false,
-      },
-      {
-        id: 6,
-        title: 'ダンスパーティー',
-        author: 'dancer_678',
-        imageUrl: '/images/samples/sample8.jpg',
-        videoUrl: '/videos/sample8.mp4',
-        votes: 98,
-        views: 432,
-        categories: ['最優秀アニメーション賞'],
-        division: 'アニメ短編',
-        createdAt: '2025-10-10T16:00:00Z',
-        description: 'ハロウィンパーティーで踊るキャラクターたち',
-        isVideo: true,
-      },
-    ];
-
-    setSubmissions(mockSubmissions);
-  }, [isLoggedIn, router]);
+    setSubmissions(getSubmissions.execute('halloween2025'));
+  }, [getSubmissions, isLoggedIn, router]);
 
   const sortedSubmissions = [...submissions].sort((a, b) => {
     if (sortBy === 'votes') {
@@ -151,17 +67,8 @@ export default function VotePage() {
   });
 
   const handleVote = (id: number) => {
-    setSubmissions((prev) =>
-      prev.map((submission) =>
-        submission.id === id
-          ? {
-              ...submission,
-              votes: submission.hasVoted ? submission.votes - 1 : submission.votes + 1,
-              hasVoted: !submission.hasVoted,
-            }
-          : submission
-      )
-    );
+    const updated = toggleVote.execute('halloween2025', id);
+    setSubmissions(updated);
   };
 
   const openModal = (submission: Submission) => {

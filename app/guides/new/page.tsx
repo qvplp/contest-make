@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -17,12 +17,14 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveDraft, getDraft } from '@/utils/draftManager';
 import { CitedGuideUrlInput } from '@/components/guides/CitedGuideUrlInput';
 import {
-  ContentFormData,
+  ContentFormDto,
   initialContentFormData,
-} from '@/types/guideForm';
+} from '@/modules/guide/application/dto/GuideFormDto';
+import { SaveGuideDraft } from '@/modules/guide/application/SaveGuideDraft';
+import { GetGuideDraft } from '@/modules/guide/application/GetGuideDraft';
+import { LocalStorageGuideDraftRepository } from '@/modules/guide/infra/LocalStorageGuideDraftRepository';
 
 const BlockEditor = dynamic(
   () => import('@/components/editor/BlockEditor'),
@@ -46,10 +48,14 @@ function NewGuidePageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const articleIdRef = useRef<string>('');
 
-  const [formData, setFormData] = useState<ContentFormData>(initialContentFormData);
+  const [formData, setFormData] = useState<ContentFormDto>(initialContentFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const draftRepo = useMemo(() => new LocalStorageGuideDraftRepository(), []);
+  const saveDraft = useMemo(() => new SaveGuideDraft(draftRepo), [draftRepo]);
+  const getDraft = useMemo(() => new GetGuideDraft(draftRepo), [draftRepo]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -61,7 +67,7 @@ function NewGuidePageContent() {
 
     if (existingId) {
       articleIdRef.current = existingId;
-      const draft = getDraft(existingId);
+      const draft = getDraft.execute(existingId);
       if (draft) {
         setFormData({
           title: draft.title,
@@ -120,7 +126,8 @@ function NewGuidePageContent() {
     if (!articleIdRef.current) return;
     setSaveStatus('saving');
     try {
-      saveDraft(articleIdRef.current, {
+      saveDraft.execute({
+        articleId: articleIdRef.current,
         title: formData.title,
         excerpt: formData.excerpt,
         content: formData.content,

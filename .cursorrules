@@ -1,0 +1,347 @@
+# ARCHITECTURE
+
+このドキュメントは、本プロジェクトのアーキテクチャ構成・命名規約・開発ルールを記載したものです。  
+目標は以下の通りです。
+
+- チーム全員が同じ前提でコードを書けるようにする
+- 将来的なマイクロサービス化の選択肢を残しつつ、現時点では開発をシンプルに保つ
+- LLM（生成 AI）にとっても理解しやすい構成にすることで、生産性向上に繋げる
+
+---
+
+## 全体構成
+
+### アーキテクチャスタイル
+
+- **モジュラーモノリス**
+  - デプロイ単位は 1 つの Next.js アプリケーション
+  - 内部は「バウンデッドコンテキスト / ドメイン」ごとにモジュール分割
+- **DDDインスパイア 3 層構造**
+  - `domain` … ドメインモデル・ルール（フレームワーク非依存）
+  - `application` … ユースケース（ユースケース毎のサービスクラス / DTO）
+  - `infra` … DB / 認証 / 外部サービス等の具象実装
+
+### ディレクトリ構成（詳細）
+
+```text
+src/
+  app/
+    # Next.js のページ、レイアウト、Route Handler 等。
+    # プレゼンテーション層 / HTTP エントリポイントを担う。
+    api/
+      account/
+        profile/route.ts
+      ...
+  modules/
+    account/
+      domain/
+        User.ts
+        UserId.ts
+        Role.ts
+        UserRepository.ts
+        events/
+          UserRegistered.ts
+      application/
+        dto/
+          MyProfileResultDto.ts
+          AccountSummaryDto.ts
+        GetMyProfile.ts
+        UpdateProfile.ts
+        AccountQueryService.ts
+        AuthorizationService.ts
+        AuthService.ts
+      infra/
+        PrismaUserRepository.ts
+        ClerkAuthService.ts
+        HttpAccountQueryService.ts
+    content/
+      domain/
+      application/
+      infra/
+    guide/
+      domain/
+      application/
+      infra/
+  shared/
+    kernel/
+      DomainEvent.ts
+      DomainError.ts
+      Result.ts
+    infra/
+      prismaClient.ts
+      logger.ts
+    utils/
+      DateProvider.ts
+```
+
+---
+
+## レイヤー別の責務とルール
+
+### 1. `domain` レイヤー
+
+**責務**
+
+- ドメインモデル（エンティティ / 値オブジェクト / ドメインサービス）
+- ドメインイベント
+- ドメイン固有のエラー
+
+**禁止事項**
+
+- Next.js / Clerk / DB クライアント等のフレームワーク・外部サービスの import
+- 他ドメインのクラス（`modules/other-domain/domain/*`）の直接 import
+
+**命名ルール**
+
+- エンティティ：`User`, `Contest`, `Guide` など名詞
+- 値オブジェクト：`UserId`, `EmailAddress` 等
+- リポジトリインターフェース：`XxxRepository`
+- ドメインサービス（必要な場合）：`XxxPolicy`, `XxxDomainService`
+- イベント：`UserRegistered`, `ContestPublished`, `GuidePublished`（過去形）、`events/` 配下に置く
+
+**例：エンティティとリポジトリ**
+
+```ts
+// modules/account/domain/User.ts
+export class UserId {
+  constructor(public readonly value: string) {}
+}
+
+export class User {
+  constructor(
+    public readonly id: UserId,
+    public email: string,
+    public name: string,
+  ) {}
+
+  changeName(newName: string) {
+    if (!newName.trim()) throw new Error('Name is required');
+    this.name = newName;
+  }
+}
+
+// modules/account/domain/UserRepository.ts
+import { User, UserId } from './User';
+
+export interface UserRepository {
+  findById(id: UserId): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  save(user: User): Promise<void>;
+}
+```
+
+---
+
+### 2. `application` レイヤー
+
+**責務**
+
+- ユースケースごとの処理フロー
+- 複数ドメインの連携
+- 認証情報・現在時刻などコンテキスト情報の扱い
+- DTO（入出力用のプレーンな型）の定義
+
+**命名ルール**
+
+- ユースケースクラス：`Verb + Noun`（動詞＋名詞）
+  - 例：`GetMyProfile`, `UpdateProfile`, `RegisterUser`, `PublishArticle`
+  - クラス名に `Service` は基本的に付けない
+- インターフェース：`XxxService`, `XxxQueryService`
+  - `AuthService`, `AuthorizationService`, `AccountQueryService` など
+- DTO:
+  - すべて `〜Dto` サフィックス
+    - 例：`MyProfileResultDto`, `AccountSummaryDto`, `UpdateProfileRequestDto`
+  - `modules/<domain>/application/dto/` に配置
+  - `type` で定義する（`interface` ではなく）
+
+**例：DTO とユースケース**
+
+```ts
+// modules/account/application/dto/MyProfileResultDto.ts
+export type MyProfileResultDto = {
+  id: string;
+  displayName: string;
+  email: string;
+  avatarUrl?: string;
+  roles: string[];
+};
+```
+
+```ts
+// modules/account/application/AccountQueryService.ts
+import type { MyProfileResultDto } from './dto/MyProfileResultDto';
+
+export interface AccountQueryService {
+  getById(id: string): Promise<MyProfileResultDto | null>;
+}
+```
+
+```ts
+// modules/account/application/AuthService.ts
+export type AuthUser = {
+  id: string;
+  email: string;
+};
+
+export interface AuthService {
+  getCurrentUser(): Promise<AuthUser | null>;
+}
+```
+
+```ts
+// modules/account/application/GetMyProfile.ts
+import type { AuthService } from './AuthService';
+import type { AccountQueryService } from './AccountQueryService';
+import type { MyProfileResultDto } from './dto/MyProfileResultDto';
+
+export class GetMyProfile {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly accounts: AccountQueryService,
+  ) {}
+
+  async execute(): Promise<MyProfileResultDto> {
+    const current = await this.auth.getCurrentUser();
+    if (!current) throw new Error('Unauthenticated');
+
+    const profile = await this.accounts.getById(current.id);
+    if (!profile) throw new Error('ProfileNotFound');
+
+    return profile;
+  }
+}
+```
+
+---
+
+### 3. `infra` レイヤー
+
+**責務**
+
+- DB アクセスの実装（Prisma / Supabase 等）
+- 認証基盤（Clerk）との連携実装
+- 外部 API / 他サービスへの HTTP クライアント
+
+**命名ルール**
+
+- リポジトリ実装：`PrismaUserRepository`, `SupabaseUserRepository` 等
+- 認証実装：`ClerkAuthService`（`AuthService` を実装）
+- リモートクエリ：`HttpAccountQueryService`（`AccountQueryService` を HTTP 経由で実装）
+
+**例：リポジトリ実装**
+
+```ts
+// modules/account/infra/PrismaUserRepository.ts
+import { prisma } from '@/shared/infra/prismaClient';
+import { User, UserId } from '../domain/User';
+import type { UserRepository } from '../domain/UserRepository';
+
+export class PrismaUserRepository implements UserRepository {
+  async findById(id: UserId): Promise<User | null> {
+    const row = await prisma.user.findUnique({ where: { id: id.value } });
+    if (!row) return null;
+    return new User(new UserId(row.id), row.email, row.name);
+  }
+
+  async save(user: User): Promise<void> {
+    await prisma.user.upsert({
+      where: { id: user.id.value },
+      create: { id: user.id.value, email: user.email, name: user.name },
+      update: { email: user.email, name: user.name },
+    });
+  }
+}
+```
+
+**例：認証実装**
+
+```ts
+// modules/account/infra/ClerkAuthService.ts
+import { currentUser } from '@clerk/nextjs/server';
+import type { AuthService, AuthUser } from '../application/AuthService';
+
+export class ClerkAuthService implements AuthService {
+  async getCurrentUser(): Promise<AuthUser | null> {
+    const user = await currentUser();
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      email: user.emailAddresses[0]?.emailAddress ?? '',
+    };
+  }
+}
+```
+
+---
+
+## Next.js (`app/`) の責務
+
+- プレゼンテーション層（React コンポーネント）
+- HTTP エントリポイント（Route Handler / Server Actions）
+- バリデーション・認証情報の取得・ユースケースの呼び出し
+
+**ルール**
+
+- Route Handler 内にビジネスロジックは書かない
+- 必ず `application` レイヤーのユースケースを呼び出す
+
+**例：Route Handler**
+
+```ts
+// app/api/account/me/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { ClerkAuthService } from '@/modules/account/infra/ClerkAuthService';
+import { AccountQueryServiceImpl } from '@/modules/account/application/AccountQueryServiceImpl';
+import { GetMyProfile } from '@/modules/account/application/GetMyProfile';
+
+export async function GET(_req: NextRequest) {
+  const auth = new ClerkAuthService();
+  const accounts = new AccountQueryServiceImpl(/* repo等注入 */);
+  const usecase = new GetMyProfile(auth, accounts);
+
+  try {
+    const result = await usecase.execute();
+    return NextResponse.json(result);
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e.message ?? 'Unknown error' },
+      { status: 400 },
+    );
+  }
+}
+```
+
+---
+
+## モジュール間の依存と将来のマイクロサービス化
+
+将来的に `account` や `content` をマイクロサービスとして切り出せるよう、以下を徹底します。
+
+1. **モジュール間の依存はインターフェース越し**
+   - 他モジュールのドメインクラスを import しない
+   - 他モジュールへの問い合わせは `XxxQueryService` 経由で行う
+
+2. **外部サービス・DB は infra に閉じ込める**
+   - Clerk / Supabase / Prisma など、特定ベンダーに依存するコードは `infra` だけに置く
+
+3. **データ所有権を明確に**
+   - どのテーブル（スキーマ）がどのモジュールの所有物かを意識する
+   - 「みんなが直接触る共通テーブル」を作らない
+
+4. **トランザクションをドメイン単位で閉じる**
+   - 複数モジュールに跨る操作は、可能なところからドメインイベント的な分離を検討する
+
+---
+
+## LLM 向けのヒント
+
+生成 AI にコード生成やリファクタリングを依頼する際は、以下を伝えると精度が上がります。
+
+- ドメインロジックは `modules/<domain>/domain` / `application` に置いてほしい
+- API 入出力は `application/dto` の `〜Dto` 型を使ってほしい
+- 永続化は必ず `XxxRepository` インターフェース経由で行ってほしい
+- 他ドメインの情報が必要な場合は、直接 import ではなく `XxxQueryService` を使ってほしい
+
+このドキュメント自体を LLM に渡して「このプロジェクトのルールに従って実装して」と指示する想定です。
+

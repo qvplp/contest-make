@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThumbsUp, MessageCircle, Eye } from 'lucide-react';
-import { Guide } from '@/types/ContestGuidesViewer';
+import type { ContestGuide as Guide } from '@/modules/contest/application/ContestGuidesViewerDto';
 
 interface GuideCardProps {
   guide: Guide;

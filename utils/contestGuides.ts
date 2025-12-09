@@ -2,7 +2,7 @@
  * コンテスト関連の攻略記事を取得するユーティリティ関数
  */
 
-import { ContestInfo } from '@/types/contests';
+import { ContestInfo } from '@/modules/contest/domain/Contest';
 
 interface Guide {
   id: number;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,7 +18,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { getActiveContests } from '@/types/contests';
+import { StaticContestQueryService } from '@/modules/contest/infra/StaticContestQueryService';
 
 type Classification = 'HOT' | 'アニメ' | '漫画' | '実写' | 'カメラワーク' | 'ワークフロー' | 'AIモデル';
 
@@ -56,6 +56,7 @@ interface Guide {
 function GuidesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const contestQuery = useMemo(() => new StaticContestQueryService(), []);
 
   const [sortBy, setSortBy] = useState<'popular' | 'recent'>('popular');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -304,7 +305,7 @@ function GuidesPageContent() {
     for (const classification of selectedClassifications) {
       if (classification === 'contest') {
         // コンテストタブが選択されている場合
-        const activeContests = getActiveContests();
+        const activeContests = contestQuery.getActive();
         const activeContestDisplayNames = activeContests.map((c) => c.displayName);
         if (guide.contestTag && activeContestDisplayNames.includes(guide.contestTag)) {
           matchCount++;
@@ -347,7 +348,7 @@ function GuidesPageContent() {
       
       for (const classification of selectedClassifications) {
         if (classification === 'contest') {
-          const activeContests = getActiveContests();
+          const activeContests = contestQuery.getActive();
           const activeContestDisplayNames = activeContests.map((c) => c.displayName);
           if (guide.contestTag && activeContestDisplayNames.includes(guide.contestTag)) {
             classificationMatch = true;
@@ -472,7 +473,7 @@ function GuidesPageContent() {
               })}
             
             {/* コンテストタブ - 開催中のコンテストがある場合のみ表示 */}
-            {getActiveContests().length > 0 && (
+            {contestQuery.getActive().length > 0 && (
               <button
                 onClick={() => handleClassificationToggle('contest')}
                 className={`px-5 py-2.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-2 ${
